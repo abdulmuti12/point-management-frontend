@@ -30,30 +30,6 @@ const inputVariants = {
 }
 
 /* ── helpers ─────────────────────────────────────────────────── */
-const STORAGE_BASE_URL = "/api/bff/storage/"
-
-/* ── helpers ─────────────────────────────────────────────────── */
-function resolveLogoUrl(filePath: string) {
-  if (/^https?:\/\//.test(filePath) || filePath.startsWith("/")) return filePath
-  return `${STORAGE_BASE_URL}${filePath}`
-}
-
-function LogoFallback({ size = "lg" }: { size?: "sm" | "lg" }) {
-  const boxCls =
-    size === "lg" ? "w-20 h-20 rounded-2xl" : "w-14 h-14 rounded-xl"
-  const textCls = size === "lg" ? "text-3xl" : "text-xl"
-  return (
-    <div
-      className={`${boxCls} bg-white/[0.06] border border-white/10
-                  flex items-center justify-center mb-6`}
-    >
-      <span className={`${textCls} font-bold text-white/40 tracking-tighter select-none`}>
-        P
-      </span>
-    </div>
-  )
-}
-
 function ErrorBanner({ message }: { message: string }) {
   return (
     <div
@@ -152,24 +128,7 @@ export default function CustomerLoginPage() {
   const [manualLoading, setManualLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState("")
-  const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const router = useRouter()
-
-  /* Fetch logo on mount */
-  useEffect(() => {
-    const fetchLogo = async () => {
-      try {
-        const apiBase = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/$/, "")
-        const res = await fetch(`${apiBase}/admins/active-logo`)
-        const data = await res.json()
-        if (data.success && data.data?.image)
-          setLogoUrl(resolveLogoUrl(data.data.image))
-      } catch {
-        /* silently fall back */
-      }
-    }
-    fetchLogo()
-  }, [])
 
   /* Auto-redirect if customer already authenticated */
   useEffect(() => {
@@ -181,8 +140,6 @@ export default function CustomerLoginPage() {
     }
     verify()
   }, [router])
-
-  const imgError = () => setLogoUrl(null)
 
   /* ── store customer session ───────────────────────────────── */
   const storeSession = (data: {
@@ -357,28 +314,47 @@ export default function CustomerLoginPage() {
                         rounded-full bg-amber-300/[0.10] blur-[90px] pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center text-center max-w-sm">
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt="Point Management"
-              onError={imgError}
-              className="h-20 w-auto object-contain mb-7"
-            />
-          ) : (
-            <LogoFallback size="lg" />
-          )}
+          <motion.div
+            className="flex flex-col items-center mb-7"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1.2, ease: [0.22, 0.61, 0.36, 1] }}
+          >
+            <motion.span
+              className="block whitespace-nowrap text-[1.95rem] leading-none font-serif font-light tracking-[0.02em] text-[#1a1a1a]"
+              initial={{ opacity: 0, y: 8, filter: "blur(6px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              transition={{ duration: 1.4, delay: 0.1, ease: [0.22, 0.61, 0.36, 1] }}
+            >
+              THE LUXURY ASIA
+            </motion.span>
+            <motion.span
+              className="mt-2 whitespace-nowrap text-[1.05rem] font-light tracking-[0.55em] text-[#1a1a1a]"
+              initial={{ opacity: 0, y: 8, filter: "blur(6px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              transition={{ duration: 1.4, delay: 0.35, ease: [0.22, 0.61, 0.36, 1] }}
+            >
+              LIVING
+            </motion.span>
+          </motion.div>
 
-          <h1 className="text-4xl font-bold tracking-tight mb-3 leading-tight text-[#1a1a1a]">
-            Point
-            <span className="text-blue-600"> Management</span>
-          </h1>
-          <p className="text-sm leading-relaxed text-[#6b6b6b]">
+          <motion.p
+            className="text-sm leading-relaxed text-[#6b6b6b]"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, delay: 0.6, ease: [0.22, 0.61, 0.36, 1] }}
+          >
             Customer portal to track your points, activity, and rewards
-          </p>
+          </motion.p>
 
-          <p className="mt-14 text-xs text-[#a0a0a0]">
-            &copy; {new Date().getFullYear()} Point Management
-          </p>
+          <motion.p
+            className="mt-14 text-xs text-[#a0a0a0]"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 1.2, delay: 0.9, ease: "easeOut" }}
+          >
+            &copy; {new Date().getFullYear()} The Luxury Asia Living
+          </motion.p>
         </div>
       </div>
 
@@ -392,23 +368,29 @@ export default function CustomerLoginPage() {
         <div className="absolute inset-0 bg-white/[0.35] pointer-events-none" />
         <div className="relative z-10 w-full max-w-sm sm:max-w-[380px]">
 
-          {/* Mobile compact header */}
-          <div className="lg:hidden flex flex-col items-center mb-8">
-            {logoUrl ? (
-              <img
-                src={logoUrl}
-                alt="Point"
-                onError={imgError}
-                className="h-14 w-auto object-contain mb-4"
-              />
-            ) : (
-              <LogoFallback size="sm" />
-            )}
-            <h1 className="text-xl font-bold tracking-tight text-[#1a1a1a]">Welcome</h1>
-            <p className="text-[13px] text-[#6b6b6b] mt-1">
-              Log in to your customer account
-            </p>
-          </div>
+          <motion.div
+            className="lg:hidden flex flex-col items-center mb-8"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.9, ease: [0.22, 0.61, 0.36, 1] }}
+          >
+            <motion.span
+              className="whitespace-nowrap text-[1.4rem] leading-none font-serif font-light tracking-[0.02em] text-[#1a1a1a]"
+              initial={{ opacity: 0, y: 6, filter: "blur(5px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              transition={{ duration: 1.2, delay: 0.1, ease: [0.22, 0.61, 0.36, 1] }}
+            >
+              THE LUXURY ASIA
+            </motion.span>
+            <motion.span
+              className="mt-1.5 whitespace-nowrap text-[0.85rem] font-light tracking-[0.5em] text-[#1a1a1a]"
+              initial={{ opacity: 0, y: 6, filter: "blur(5px)" }}
+              animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              transition={{ duration: 1.2, delay: 0.3, ease: [0.22, 0.61, 0.36, 1] }}
+            >
+              LIVING
+            </motion.span>
+          </motion.div>
 
           {/* Desktop heading */}
           <div className="hidden lg:block mb-10">
@@ -461,7 +443,7 @@ export default function CustomerLoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="nama@email.com"
+                  placeholder="name@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -544,9 +526,9 @@ export default function CustomerLoginPage() {
               <Button
                 type="submit"
                 disabled={manualLoading}
-                className="w-full h-12 bg-blue-600 hover:bg-blue-500
+                className="w-full h-12 bg-black hover:bg-neutral-800
                            text-white font-semibold text-[15px]
-                           rounded-xl shadow-lg shadow-blue-600/25
+                           rounded-xl shadow-lg shadow-black/20
                            active:scale-[0.98] transition-all
                            disabled:opacity-70 disabled:cursor-not-allowed"
               >
@@ -567,7 +549,7 @@ export default function CustomerLoginPage() {
               <button
                 type="button"
                 onClick={() => router.push("/customer/register")}
-                className="text-blue-600 hover:text-blue-700 transition-colors font-medium"
+                className="text-black hover:text-neutral-700 transition-colors font-medium"
               >
                 Register now
               </button>
