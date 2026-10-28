@@ -288,10 +288,10 @@ export default function CustomerLoginPage() {
 
   /* ── shared form input class ──────────────────────────────── */
   const inputCls = `
-    h-12 bg-white/70 border border-black/10
-    text-[#1a1a1a] text-[15px] placeholder:text-slate-400
+    h-12 bg-white/[0.06] border border-amber-200/25
+    text-white text-[15px] placeholder:text-white/40
     rounded-xl outline-none
-    focus:bg-white focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/25
+    focus:bg-white/[0.08] focus:border-amber-200/50 focus:ring-2 focus:ring-amber-200/20
     transition-colors disabled:opacity-50
   `
 
@@ -304,17 +304,13 @@ export default function CustomerLoginPage() {
       <div
         className="relative hidden lg:flex flex-col items-center justify-center
                    w-[44%] shrink-0
-                   bg-[#F5F2EB]
+                   bg-[url('/images/bg.png')] bg-cover bg-center
                    border-r border-black/[0.06] overflow-hidden
                    p-16"
       >
-        <div className="absolute -top-24 -left-24 w-[420px] h-[420px]
-                        rounded-full bg-blue-400/[0.12] blur-[110px] pointer-events-none" />
-        <div className="absolute -bottom-24 -right-16 w-[300px] h-[300px]
-                        rounded-full bg-amber-300/[0.10] blur-[90px] pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center text-center max-w-sm">
-          <motion.div
+          {/* <motion.div
             className="flex flex-col items-center mb-7"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -336,7 +332,7 @@ export default function CustomerLoginPage() {
             >
               LIVING
             </motion.span>
-          </motion.div>
+          </motion.div> */}
 
           <motion.p
             className="text-sm leading-relaxed text-[#6b6b6b]"
@@ -344,17 +340,17 @@ export default function CustomerLoginPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, delay: 0.6, ease: [0.22, 0.61, 0.36, 1] }}
           >
-            Customer portal to track your points, activity, and rewards
+            {/* Customer portal to track your points, activity, and rewards */}
           </motion.p>
 
-          <motion.p
+          {/* <motion.p
             className="mt-14 text-xs text-[#a0a0a0]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1.2, delay: 0.9, ease: "easeOut" }}
           >
             &copy; {new Date().getFullYear()} The Luxury Asia Living
-          </motion.p>
+          </motion.p> */}
         </div>
       </div>
 
@@ -363,9 +359,8 @@ export default function CustomerLoginPage() {
       ════════════════════════════════════════════════════ */}
       <div
         className="flex-1 relative flex items-center justify-center p-5 sm:p-8 lg:p-12
-                   bg-[url('/images/login-bg-right.png')] bg-cover bg-center"
+                   bg-[url('/images/warm.png')] bg-cover bg-center"
       >
-        <div className="absolute inset-0 bg-white/[0.35] pointer-events-none" />
         <div className="relative z-10 w-full max-w-sm sm:max-w-[380px]">
 
           <motion.div
@@ -394,7 +389,7 @@ export default function CustomerLoginPage() {
 
           {/* Desktop heading */}
           <div className="hidden lg:block mb-10">
-            <p className="text-sm text-[#6b6b6b]">
+            <p className="text-sm text-white">
               Please log in to the customer portal to continue.
             </p>
           </div>
@@ -434,12 +429,12 @@ export default function CustomerLoginPage() {
             >
               <Label
                 htmlFor="email"
-                className="text-[13px] font-medium text-[#4a4a4a]"
+                className="text-[13px] font-medium text-white/85"
               >
                 Email
               </Label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9a9a9a]" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
                 <Input
                   id="email"
                   type="email"
@@ -464,12 +459,12 @@ export default function CustomerLoginPage() {
             >
               <Label
                 htmlFor="password"
-                className="text-[13px] font-medium text-[#4a4a4a]"
+                className="text-[13px] font-medium text-white/85"
               >
                 Password
               </Label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9a9a9a]" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" />
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -491,7 +486,7 @@ export default function CustomerLoginPage() {
                       : "Show password"
                   }
                   className="absolute right-3.5 top-1/2 -translate-y-1/2
-                             text-[#7a7a7a] hover:text-[#1a1a1a] transition-colors
+                             text-white/50 hover:text-white/90 transition-colors
                              disabled:opacity-40"
                 >
                   <AnimatePresence mode="wait">
@@ -526,9 +521,10 @@ export default function CustomerLoginPage() {
               <Button
                 type="submit"
                 disabled={manualLoading}
-                className="w-full h-12 bg-black hover:bg-neutral-800
-                           text-white font-semibold text-[15px]
-                           rounded-xl shadow-lg shadow-black/20
+                className="w-full h-12 bg-gradient-to-r from-[#B5764A] via-[#C68A52] to-[#A85F38]
+                           hover:from-[#C2824F] hover:via-[#D2965C] hover:to-[#B56A40]
+                           text-white font-medium text-[15px] font-serif tracking-wide
+                           rounded-xl shadow-lg shadow-black/30
                            active:scale-[0.98] transition-all
                            disabled:opacity-70 disabled:cursor-not-allowed"
               >
@@ -544,12 +540,12 @@ export default function CustomerLoginPage() {
             </div>
 
             {/* Register hint */}
-            <p className="text-center text-xs text-[#8a8a8a] leading-relaxed">
+            <p className="text-center text-xs text-white/60 leading-relaxed">
               Don&apos;t have an account?{" "}
               <button
                 type="button"
                 onClick={() => router.push("/customer/register")}
-                className="text-black hover:text-neutral-700 transition-colors font-medium"
+                className="text-white underline underline-offset-2 hover:text-amber-200/80 transition-colors font-medium"
               >
                 Register now
               </button>
