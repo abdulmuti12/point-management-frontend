@@ -550,6 +550,15 @@ export default function CustomerLoginPage() {
                 Register now
               </button>
             </p>
+            <p className="text-center text-xs text-white/60 leading-relaxed">
+              <button
+                type="button"
+                onClick={() => router.push("/customer/forgot-password")}
+                className="text-white/80 underline underline-offset-2 hover:text-amber-200/80 transition-colors font-medium"
+              >
+                Lupa password?
+              </button>
+            </p>
           </motion.form>
         </div>
       </div>
