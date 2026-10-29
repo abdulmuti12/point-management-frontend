@@ -32,16 +32,16 @@ function loadGoogleIdClient(): Promise<void> {
   })
 }
 
-/* ── field styles (light, matching login page) ─────────────── */
+/* ── field styles (dark, matching login page) ─────────────── */
 const inputCls = `
-  h-12 bg-white/70 border border-black/10
-  text-[#1a1a1a] text-[15px] placeholder:text-slate-400
+  h-12 bg-white/[0.06] border border-amber-200/25
+  text-white text-[15px] placeholder:text-white/40
   rounded-xl outline-none
-  focus:bg-white focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/25
+  focus:bg-white/[0.08] focus:border-amber-200/50 focus:ring-2 focus:ring-amber-200/20
   transition-colors disabled:opacity-50
 `
 
-const labelCls = "text-[11px] font-semibold text-[#6b6b6b] uppercase tracking-[0.12em] mb-1.5 block"
+const labelCls = "text-[11px] font-semibold text-white/60 uppercase tracking-[0.12em] mb-1.5 block"
 
 /* ── helpers (replicated from login page) ──────────────────── */
 const STORAGE_BASE_URL = "/api/bff/storage/"
@@ -305,14 +305,10 @@ export default function CustomerRegisterPage() {
       <div
         className="relative hidden lg:flex flex-col items-center justify-center
                    w-[44%] shrink-0
-                   bg-[#F5F2EB]
+                   bg-[url('/images/bg.png')] bg-cover bg-center
                    border-r border-black/[0.06] overflow-hidden
                    p-16"
       >
-        <div className="absolute -top-24 -left-24 w-[420px] h-[420px]
-                        rounded-full bg-blue-400/[0.12] blur-[110px] pointer-events-none" />
-        <div className="absolute -bottom-24 -right-16 w-[300px] h-[300px]
-                        rounded-full bg-amber-300/[0.10] blur-[90px] pointer-events-none" />
 
         <div className="relative z-10 flex flex-col items-center text-center max-w-sm">
           {logoUrl ? (
@@ -322,21 +318,8 @@ export default function CustomerRegisterPage() {
               onError={imgError}
               className="h-20 w-auto object-contain mb-7"
             />
-          ) : (
-            <LogoFallback size="lg" />
-          )}
+          ) : null}
 
-          <h1 className="text-4xl font-bold tracking-tight mb-3 leading-tight text-[#1a1a1a]">
-            Point
-            <span className="text-blue-600"> Management</span>
-          </h1>
-          <p className="text-sm leading-relaxed text-[#6b6b6b]">
-            Customer portal to track your points, activity, and rewards
-          </p>
-
-          <p className="mt-14 text-xs text-[#a0a0a0]">
-            &copy; {new Date().getFullYear()} Point Management
-          </p>
         </div>
       </div>
 
@@ -345,9 +328,8 @@ export default function CustomerRegisterPage() {
       ════════════════════════════════════════════════════ */}
       <div
         className="flex-1 relative flex flex-col items-center justify-center p-5 sm:p-8 lg:p-12
-                   bg-[url('/images/login-bg-right.png')] bg-cover bg-center"
+                   bg-[url('/images/warm.png')] bg-cover bg-center"
       >
-        <div className="absolute inset-0 bg-white/[0.35] pointer-events-none" />
 
         <div className="relative z-10 w-full max-w-sm sm:max-w-[380px]">
 
@@ -360,18 +342,16 @@ export default function CustomerRegisterPage() {
                 onError={imgError}
                 className="h-14 w-auto object-contain mb-4"
               />
-            ) : (
-              <LogoFallback size="sm" />
-            )}
-            <h1 className="text-xl font-bold tracking-tight text-[#1a1a1a]">Create New Account</h1>
-            <p className="text-[13px] text-[#6b6b6b] mt-1">
+            ) : null}
+            <h1 className="text-xl font-bold tracking-tight text-white">Create New Account</h1>
+            <p className="text-[13px] text-white/60 mt-1">
               Register and start earning your points
             </p>
           </div>
 
           {/* Desktop heading */}
           <div className="hidden lg:block mb-10">
-            <p className="text-sm text-[#6b6b6b]">
+            <p className="text-sm text-white/60">
               Please complete your details to create a customer account.
             </p>
           </div>
@@ -379,7 +359,7 @@ export default function CustomerRegisterPage() {
           {/* back to login */}
           <button
             onClick={() => router.push("/customer/login")}
-            className="relative z-10 flex items-center gap-2 text-[13px] text-[#6b6b6b] hover:text-[#1a1a1a] transition-colors mb-5"
+            className="relative z-10 flex items-center gap-2 text-[13px] text-white/60 hover:text-white transition-colors mb-5"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             Back to Login
@@ -387,7 +367,7 @@ export default function CustomerRegisterPage() {
 
           {/* ── Google option ─────────────────────────────── */}
           <div className="mb-6 space-y-3">
-            <p className="text-[11px] font-semibold text-[#a0a0a0] uppercase tracking-[0.15em]">
+            <p className="text-[11px] font-semibold text-white/40 uppercase tracking-[0.15em]">
               Choose Method
             </p>
             <GoogleRegisterButton onClick={handleGoogleRegister} loading={googleLoading} />
@@ -396,11 +376,11 @@ export default function CustomerRegisterPage() {
 
           {/* divider */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="flex-1 h-px bg-black/[0.06]" />
-            <span className="text-[10px] text-[#a0a0a0] uppercase tracking-[0.2em] font-medium">
+            <div className="flex-1 h-px bg-white/15" />
+            <span className="text-[10px] text-white/40 uppercase tracking-[0.2em] font-medium">
               or
             </span>
-            <div className="flex-1 h-px bg-black/[0.06]" />
+            <div className="flex-1 h-px bg-white/15" />
           </div>
 
           {/* ── manual form ───────────────────────────────── */}
@@ -454,10 +434,10 @@ export default function CustomerRegisterPage() {
               </Field>
 
               {/* TOS note */}
-              <p className="text-[11px] text-[#8a8a8a] leading-relaxed">
+              <p className="text-[11px] text-white/40 leading-relaxed">
                 By registering, you agree to the{" "}
-                <span className="text-[#6b6b6b]">Privacy Policy</span> and{" "}
-                <span className="text-[#6b6b6b]">Terms &amp; Conditions</span>{" "}
+                <span className="text-white/60">Privacy Policy</span> and{" "}
+                <span className="text-white/60">Terms &amp; Conditions</span>{" "}
                 of Point Management.
               </p>
 
@@ -465,8 +445,10 @@ export default function CustomerRegisterPage() {
               <button
                 type="submit"
                 disabled={manualLoading}
-                className="w-full h-12 rounded-xl bg-blue-600 hover:bg-blue-700
-                           text-white font-semibold text-[15px]
+                className="w-full h-12 rounded-xl bg-gradient-to-r from-[#B5764A] via-[#C68A52] to-[#A85F38]
+                           hover:from-[#C2824F] hover:via-[#D2965C] hover:to-[#B56A40]
+                           text-white font-medium text-[15px] font-serif tracking-wide
+                           shadow-lg shadow-black/30
                            shadow-sm shadow-blue-600/20
                            active:scale-[0.99] transition-colors
                            disabled:opacity-50 disabled:cursor-not-allowed
@@ -488,7 +470,7 @@ export default function CustomerRegisterPage() {
                 <button
                   type="button"
                   onClick={() => router.push("/customer/login")}
-                  className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                  className="text-white underline underline-offset-2 hover:text-amber-200/80 transition-colors font-medium"
                 >
                   Log in here
                 </button>
