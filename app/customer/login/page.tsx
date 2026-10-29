@@ -226,6 +226,7 @@ export default function CustomerLoginPage() {
       const idToken = await new Promise<string | null>((resolve) => {
         ;(window as any).google.accounts.id.initialize({
           client_id: clientId,
+          use_fedcm_for_auth: false, // suppresses FedCM AbortError in console
           callback: (response: any) => {
             resolve(response?.credential ?? null)
           },

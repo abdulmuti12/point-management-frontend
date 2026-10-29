@@ -32,6 +32,7 @@ type MeData = {
 }
 
 type MemberLevelData = {
+  total_points: number
   current_level: {
     id: number
     name: string
@@ -39,7 +40,6 @@ type MemberLevelData = {
     min_points: number | null
     max_points: number | null
   } | null
-  current_points: number
   points_expiry_date: string | null
 }
 
@@ -115,7 +115,7 @@ export default function CustomerAccountPage() {
   }
 
   const activeLevel = level?.current_level || null
-  const points = level?.current_points ?? 0
+  const points = level?.total_points ?? 0
   const expiryDate = level?.points_expiry_date || null
 
   return (
