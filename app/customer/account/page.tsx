@@ -123,7 +123,7 @@ export default function CustomerAccountPage() {
       {/* ── Member Level Image ─────────────────────────────────────────────── */}
       {activeLevel && (
         <div className="space-y-4">
-          <div className="relative w-full rounded-xl overflow-hidden bg-slate-100">
+          <div className="relative max-w-[80%] rounded-xl overflow-hidden bg-slate-100">
             <div className="w-full aspect-[16/9] flex items-center justify-center">
               {activeLevel.image_url ? (
                 <img
@@ -138,11 +138,28 @@ export default function CustomerAccountPage() {
                 </div>
               )}
             </div>
+            {/* Badge */}
             <div className="absolute top-3 left-3 inline-flex items-center gap-1.5
                             bg-slate-900/70 backdrop-blur text-amber-300 text-[10px] uppercase tracking-widest
                             px-2.5 py-1 rounded-full font-semibold">
               <Crown className="w-3 h-3" />
               {activeLevel.name}
+            </div>
+            {/* Name & phone overlay — right side */}
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none rounded-b-xl" />
+            <div className="absolute right-3 bottom-2 text-right max-w-[60%]">
+              <p className="text-[9px] uppercase tracking-[0.2em] text-amber-300/90 mb-0.5">
+                Member
+              </p>
+              <p className="text-sm font-medium text-white leading-tight truncate"
+                 title={customer.full_name || customer.name}>
+                {(customer.full_name || customer.name || "—").toUpperCase()}
+              </p>
+              {customer.phone_number && (
+                <p className="text-[11px] text-slate-200/80 truncate" title={customer.phone_number}>
+                  {customer.phone_number}
+                </p>
+              )}
             </div>
           </div>
 
