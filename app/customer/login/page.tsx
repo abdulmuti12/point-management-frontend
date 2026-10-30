@@ -557,7 +557,7 @@ export default function CustomerLoginPage() {
                 onClick={() => router.push("/customer/forgot-password")}
                 className="text-white/80 underline underline-offset-2 hover:text-amber-200/80 transition-colors font-medium"
               >
-                Lupa password?
+                Forgot password?
               </button>
             </p>
           </motion.form>

@@ -87,7 +87,7 @@ function SuccessView({
                    hover:bg-white/[0.10] hover:text-white
                    transition-all active:scale-[0.98]"
       >
-        Kembali ke Login
+         Back to Login
       </button>
     </motion.div>
   )
@@ -189,7 +189,8 @@ export default function ForgotPasswordPage() {
               {/* Desktop heading */}
               <div className="hidden lg:block mb-10">
                 <p className="text-sm text-white/60">
-                  Lupa password? Masukkan email Anda dan kami akan mengirim link reset.
+                Forgot your password? Enter your email and we will send you a reset link.
+                  {/* Lupa password? Masukkan email Anda dan kami akan mengirim link reset. */}
                 </p>
               </div>
 
@@ -246,7 +247,7 @@ export default function ForgotPasswordPage() {
                         Mengirim…
                       </span>
                     ) : (
-                      "Kirim Link Reset"
+                      "Send Reset Link"
                     )}
                   </Button>
                 </div>
