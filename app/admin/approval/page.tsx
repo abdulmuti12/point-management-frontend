@@ -46,6 +46,8 @@ interface GiftClaim {
   gift_id: string
   gift_name: string | null
   gift_image: string | null
+  gift_image2: string | null
+  gift_image3: string | null
   required_point: number
   status: ClaimStatus
   notes: string | null
@@ -147,6 +149,8 @@ export default function GiftApprovalPage() {
               gift_id: raw?.gift_id ?? "",
               gift_name: gift?.name ?? null,
               gift_image: gift?.image ?? null,
+              gift_image2: gift?.image2 ?? null,
+              gift_image3: gift?.image3 ?? null,
               required_point: raw?.required_point ?? 0,
               status: (raw?.status as ClaimStatus) ?? "waiting",
               notes: raw?.notes ?? null,
@@ -353,16 +357,20 @@ export default function GiftApprovalPage() {
                     className="border border-slate-200 rounded-xl p-4 hover:border-slate-300 hover:shadow-sm transition-all"
                   >
                     <div className="flex flex-col md:flex-row gap-4">
-                      {/* Image */}
-                      <div className="w-full md:w-24 h-24 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                        {c.gift_image ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={getImageUrl(c.gift_image)} alt={c.gift_name ?? ""} className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-slate-300">
-                            <ImageIcon className="w-8 h-8" />
+                      {/* Images */}
+                      <div className="flex gap-1 shrink-0">
+                        {[c.gift_image, c.gift_image2, c.gift_image3].map((img, i) => (
+                          <div key={i} className="w-16 h-16 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 flex-shrink-0">
+                            {img ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={getImageUrl(img)} alt={`${c.gift_name ?? ""} ${i + 1}`} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                <ImageIcon className="w-5 h-5" />
+                              </div>
+                            )}
                           </div>
-                        )}
+                        ))}
                       </div>
 
                       {/* Body */}
@@ -523,15 +531,19 @@ export default function GiftApprovalPage() {
                 </div>
               </div>
               <div className="flex items-center gap-3 pt-2 border-t border-slate-200">
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-white border border-slate-200 shrink-0">
-                  {actionModal.claim.gift_image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={getImageUrl(actionModal.claim.gift_image)} alt={actionModal.claim.gift_name ?? ""} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-300">
-                      <Gift className="w-6 h-6" />
+                <div className="flex gap-1 shrink-0">
+                  {[actionModal.claim.gift_image, actionModal.claim.gift_image2, actionModal.claim.gift_image3].map((img, i) => (
+                    <div key={i} className="w-10 h-10 rounded-lg overflow-hidden bg-white border border-slate-200 flex-shrink-0">
+                      {img ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={getImageUrl(img)} alt={`${actionModal.claim.gift_name ?? ""} ${i + 1}`} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-300">
+                          <Gift className="w-4 h-4" />
+                        </div>
+                      )}
                     </div>
-                  )}
+                  ))}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-slate-900 truncate">{actionModal.claim.gift_name}</p>
@@ -607,15 +619,24 @@ export default function GiftApprovalPage() {
           </DialogHeader>
           {detailClaim && (
             <div className="space-y-3 text-sm">
-              <div className="aspect-[4/3] rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
-                {detailClaim.gift_image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={getImageUrl(detailClaim.gift_image)} alt={detailClaim.gift_name ?? ""} className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-300">
-                    <Gift className="w-16 h-16" />
-                  </div>
-                )}
+              <div className="rounded-xl overflow-hidden bg-slate-100 border border-slate-200 p-3">
+                <div className="flex gap-2 flex-wrap">
+                  {[detailClaim.gift_image, detailClaim.gift_image2, detailClaim.gift_image3].map((img, i) => (
+                    <div key={i} className="text-center">
+                      <div className="w-24 h-24 rounded-lg overflow-hidden bg-white border border-slate-200">
+                        {img ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={getImageUrl(img)} alt={`${detailClaim.gift_name ?? ""} ${i + 1}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-300">
+                            <Gift className="w-8 h-8" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-1">Foto {i + 1}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Customer info */}
@@ -679,8 +700,8 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 function getImageUrl(path: string | null): string {
   if (!path) return ""
   if (path.startsWith("http")) return path
-  const base = (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api").replace(/\/api$/, "")
-  return `${base}/storage/${path}`
+  const clean = path.replace(/^\/storage\//, "").replace(/^\//, "")
+  return `/api/bff/storage/${clean}`
 }
 
 function formatDate(iso: string): string {

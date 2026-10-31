@@ -45,6 +45,8 @@ interface GiftData {
   name: string
   total_point: number
   image: string | null
+  image2: string | null
+  image3: string | null
   description: string | null
   status: string
   created_at: string
@@ -114,6 +116,10 @@ export default function GiftPage() {
   })
   const [giftImage, setGiftImage] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [giftImage2, setGiftImage2] = useState<File | null>(null)
+  const [image2Preview, setImage2Preview] = useState<string | null>(null)
+  const [giftImage3, setGiftImage3] = useState<File | null>(null)
+  const [image3Preview, setImage3Preview] = useState<string | null>(null)
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [giftToDelete, setGiftToDelete] = useState<GiftData | null>(null)
@@ -133,7 +139,13 @@ export default function GiftPage() {
   })
   const [editGiftImage, setEditGiftImage] = useState<File | null>(null)
   const [editImagePreview, setEditImagePreview] = useState<string | null>(null)
+  const [editGiftImage2, setEditGiftImage2] = useState<File | null>(null)
+  const [editImage2Preview, setEditImage2Preview] = useState<string | null>(null)
+  const [editGiftImage3, setEditGiftImage3] = useState<File | null>(null)
+  const [editImage3Preview, setEditImage3Preview] = useState<string | null>(null)
   const [currentGiftImage, setCurrentGiftImage] = useState<string | null>(null)
+  const [currentGiftImage2, setCurrentGiftImage2] = useState<string | null>(null)
+  const [currentGiftImage3, setCurrentGiftImage3] = useState<string | null>(null)
 
   const addToast = (type: "success" | "error", title: string, message: string) => {
     const id = Math.random().toString(36).substr(2, 9)
@@ -256,8 +268,8 @@ export default function GiftPage() {
     },
     {
       title: "With Images",
-      value: gifts.filter((gift) => gift.image).length.toString(),
-      description: "Gifts with images",
+      value: gifts.filter((gift) => gift.image || gift.image2 || gift.image3).length.toString(),
+      description: "Gifts with at least one image",
       icon: ImageIcon,
       color: "text-blue-600",
     },
@@ -298,16 +310,31 @@ export default function GiftPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null
     setGiftImage(file)
-
     if (file) {
       const reader = new FileReader()
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string)
-      }
+      reader.onloadend = () => setImagePreview(reader.result as string)
       reader.readAsDataURL(file)
-    } else {
-      setImagePreview(null)
-    }
+    } else setImagePreview(null)
+  }
+
+  const handleImage2Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setGiftImage2(file)
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => setImage2Preview(reader.result as string)
+      reader.readAsDataURL(file)
+    } else setImage2Preview(null)
+  }
+
+  const handleImage3Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setGiftImage3(file)
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => setImage3Preview(reader.result as string)
+      reader.readAsDataURL(file)
+    } else setImage3Preview(null)
   }
 
   const handleAddDialogOpen = (open: boolean) => {
@@ -321,6 +348,10 @@ export default function GiftPage() {
       })
       setGiftImage(null)
       setImagePreview(null)
+      setGiftImage2(null)
+      setImage2Preview(null)
+      setGiftImage3(null)
+      setImage3Preview(null)
       setCreateMessage("")
     }
   }
@@ -342,6 +373,12 @@ export default function GiftPage() {
       if (giftImage) {
         formData.append("image", giftImage)
       }
+      if (giftImage2) {
+        formData.append("image2", giftImage2)
+      }
+      if (giftImage3) {
+        formData.append("image3", giftImage3)
+      }
 
       const { ok, data } = await adminFetch("admins/gift", {
         method: "POST",
@@ -360,6 +397,10 @@ export default function GiftPage() {
         })
         setGiftImage(null)
         setImagePreview(null)
+        setGiftImage2(null)
+        setImage2Preview(null)
+        setGiftImage3(null)
+        setImage3Preview(null)
 
         fetchGifts(currentPage, searchValue)
 
@@ -451,8 +492,14 @@ export default function GiftPage() {
           status: data.data.status || "active",
         })
         setCurrentGiftImage(data.data.image)
+        setCurrentGiftImage2(data.data.image2)
+        setCurrentGiftImage3(data.data.image3)
         setEditImagePreview(null)
         setEditGiftImage(null)
+        setEditGiftImage2(null)
+        setEditGiftImage3(null)
+        setEditImage2Preview(null)
+        setEditImage3Preview(null)
       } else {
         setEditMessage(data.message || "Failed to load gift data")
       }
@@ -466,16 +513,31 @@ export default function GiftPage() {
   const handleEditImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null
     setEditGiftImage(file)
-
     if (file) {
       const reader = new FileReader()
-      reader.onloadend = () => {
-        setEditImagePreview(reader.result as string)
-      }
+      reader.onloadend = () => setEditImagePreview(reader.result as string)
       reader.readAsDataURL(file)
-    } else {
-      setEditImagePreview(null)
-    }
+    } else setEditImagePreview(null)
+  }
+
+  const handleEditImage2Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setEditGiftImage2(file)
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => setEditImage2Preview(reader.result as string)
+      reader.readAsDataURL(file)
+    } else setEditImage2Preview(null)
+  }
+
+  const handleEditImage3Change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null
+    setEditGiftImage3(file)
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => setEditImage3Preview(reader.result as string)
+      reader.readAsDataURL(file)
+    } else setEditImage3Preview(null)
   }
 
   const handleEditDialogClose = () => {
@@ -491,7 +553,13 @@ export default function GiftPage() {
       })
       setEditGiftImage(null)
       setEditImagePreview(null)
+      setEditGiftImage2(null)
+      setEditGiftImage3(null)
+      setEditImage2Preview(null)
+      setEditImage3Preview(null)
       setCurrentGiftImage(null)
+      setCurrentGiftImage2(null)
+      setCurrentGiftImage3(null)
     }
   }
 
@@ -514,6 +582,12 @@ export default function GiftPage() {
 
       if (editGiftImage) {
         formData.append("image", editGiftImage)
+      }
+      if (editGiftImage2) {
+        formData.append("image2", editGiftImage2)
+      }
+      if (editGiftImage3) {
+        formData.append("image3", editGiftImage3)
       }
 
       const { ok, data } = await adminFetch(`admins/gift/${giftToEdit.id}`, {
@@ -678,44 +752,97 @@ export default function GiftPage() {
                 <p className="text-xs text-slate-500">Points needed to redeem this gift</p>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="image">Gift Image</Label>
-                <div className="flex flex-col gap-2">
+              <div className="grid gap-3">
+                <Label>Gift Images</Label>
+
+                {/* Image 1 — required */}
+                <div className="grid gap-1.5 border border-slate-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-700">Foto 1</span>
+                    <span className="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-semibold">Wajib</span>
+                  </div>
                   <Input
-                    id="image"
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/gif"
                     onChange={handleImageChange}
                     disabled={isCreatingGift}
-                    className="cursor-pointer"
+                    className="cursor-pointer h-9 text-sm"
                   />
                   {imagePreview && (
-                    <div className="mt-2 relative">
-                      <div className="w-full h-32 rounded-md overflow-hidden border border-slate-200">
-                        <Image
-                          src={imagePreview || "/placeholder.svg"}
-                          alt="Image preview"
-                          fill
-                          className="object-contain"
-                        />
+                    <div className="relative mt-1">
+                      <div className="w-20 h-20 rounded-md overflow-hidden border border-slate-200 bg-slate-50">
+                        <Image src={imagePreview} alt="Foto 1 preview" fill className="object-cover" />
                       </div>
-                      <Button
+                      <button
                         type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute top-1 right-1 h-6 w-6 p-0 rounded-full bg-slate-800/60 hover:bg-slate-800/80 text-white"
-                        onClick={() => {
-                          setGiftImage(null)
-                          setImagePreview(null)
-                        }}
+                        className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] hover:bg-red-600 shadow-sm"
+                        onClick={() => { setGiftImage(null); setImagePreview(null) }}
                         disabled={isCreatingGift}
                       >
                         <X className="h-3 w-3" />
-                        <span className="sr-only">Remove image</span>
-                      </Button>
+                      </button>
                     </div>
                   )}
-                  <p className="text-xs text-slate-500">Upload a gift image (optional)</p>
+                </div>
+
+                {/* Image 2 — optional */}
+                <div className="grid gap-1.5 border border-slate-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-700">Foto 2</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">Opsional</span>
+                  </div>
+                  <Input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif"
+                    onChange={handleImage2Change}
+                    disabled={isCreatingGift}
+                    className="cursor-pointer h-9 text-sm"
+                  />
+                  {image2Preview && (
+                    <div className="relative mt-1">
+                      <div className="w-20 h-20 rounded-md overflow-hidden border border-slate-200 bg-slate-50">
+                        <Image src={image2Preview} alt="Foto 2 preview" fill className="object-cover" />
+                      </div>
+                      <button
+                        type="button"
+                        className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] hover:bg-red-600 shadow-sm"
+                        onClick={() => { setGiftImage2(null); setImage2Preview(null) }}
+                        disabled={isCreatingGift}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Image 3 — optional */}
+                <div className="grid gap-1.5 border border-slate-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-700">Foto 3</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">Opsional</span>
+                  </div>
+                  <Input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif"
+                    onChange={handleImage3Change}
+                    disabled={isCreatingGift}
+                    className="cursor-pointer h-9 text-sm"
+                  />
+                  {image3Preview && (
+                    <div className="relative mt-1">
+                      <div className="w-20 h-20 rounded-md overflow-hidden border border-slate-200 bg-slate-50">
+                        <Image src={image3Preview} alt="Foto 3 preview" fill className="object-cover" />
+                      </div>
+                      <button
+                        type="button"
+                        className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center text-[10px] hover:bg-red-600 shadow-sm"
+                        onClick={() => { setGiftImage3(null); setImage3Preview(null) }}
+                        disabled={isCreatingGift}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -861,22 +988,23 @@ export default function GiftPage() {
                   <TableRow key={gift.id}>
                     <TableCell className="font-medium">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
-                          {gift.image ? (
-                            <Image
-                              src={getGiftImage(gift.image) || "/placeholder.svg"}
-                              alt={gift.name}
-                              width={40}
-                              height={40}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement
-                                target.src = "/placeholder.svg?height=40&width=40"
-                              }}
-                            />
-                          ) : (
-                            <Package className="w-5 h-5 text-slate-400" />
-                          )}
+                        <div className="flex gap-1 shrink-0">
+                          {[gift.image, gift.image2, gift.image3].map((img, i) => (
+                            <div key={i} className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center border border-slate-200">
+                              {img ? (
+                                <Image
+                                  src={getGiftImage(img) || "/placeholder.svg"}
+                                  alt={`${gift.name} ${i + 1}`}
+                                  width={40}
+                                  height={40}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg?height=40&width=40" }}
+                                />
+                              ) : (
+                                <Package className="w-4 h-4 text-slate-300" />
+                              )}
+                            </div>
+                          ))}
                         </div>
                         <div>
                           <p className="font-medium text-slate-900">{gift.name}</p>
@@ -998,22 +1126,23 @@ export default function GiftPage() {
               <div className="space-y-6">
                 {/* Header Info */}
                 <div className="flex items-center space-x-4 p-4 bg-slate-50 rounded-lg">
-                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-200 flex items-center justify-center">
-                    {selectedGift.image ? (
-                      <Image
-                        src={getGiftImage(selectedGift.image) || "/placeholder.svg"}
-                        alt={selectedGift.name}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement
-                          target.src = "/placeholder.svg?height=64&width=64"
-                        }}
-                      />
-                    ) : (
-                      <Package className="w-8 h-8 text-slate-600" />
-                    )}
+                  <div className="flex gap-2 shrink-0">
+                    {[selectedGift.image, selectedGift.image2, selectedGift.image3].map((img, i) => (
+                      <div key={i} className="w-16 h-16 rounded-lg overflow-hidden bg-slate-200 flex items-center justify-center border border-slate-200">
+                        {img ? (
+                          <Image
+                            src={getGiftImage(img) || "/placeholder.svg"}
+                            alt={`${selectedGift.name} ${i + 1}`}
+                            width={64}
+                            height={64}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg?height=64&width=64" }}
+                          />
+                        ) : (
+                          <Package className="w-7 h-7 text-slate-400" />
+                        )}
+                      </div>
+                    ))}
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-semibold text-slate-900">{selectedGift.name}</h3>
@@ -1083,26 +1212,36 @@ export default function GiftPage() {
                 </div>
 
                 {/* Gift Image Section */}
-                {selectedGift.image && (
+                {(selectedGift.image || selectedGift.image2 || selectedGift.image3) && (
                   <div className="space-y-4">
-                    <h4 className="font-medium text-slate-900">Gift Image</h4>
+                    <h4 className="font-medium text-slate-900">Gift Images</h4>
                     <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
-                      <div className="flex justify-center">
-                        <div className="w-32 h-32 rounded-lg overflow-hidden bg-white shadow-sm">
-                          <Image
-                            src={getGiftImage(selectedGift.image) || "/placeholder.svg"}
-                            alt={selectedGift.name}
-                            width={128}
-                            height={128}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.src = "/placeholder.svg?height=128&width=128"
-                            }}
-                          />
-                        </div>
+                      <div className="flex gap-3 justify-center flex-wrap">
+                        {[selectedGift.image, selectedGift.image2, selectedGift.image3].map((img, i) => (
+                          img ? (
+                            <div key={i} className="text-center">
+                              <div className="w-28 h-28 rounded-lg overflow-hidden bg-white shadow-sm border border-slate-200">
+                                <Image
+                                  src={getGiftImage(img) || "/placeholder.svg"}
+                                  alt={`${selectedGift.name} ${i + 1}`}
+                                  width={112}
+                                  height={112}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => { (e.target as HTMLImageElement).src = "/placeholder.svg?height=128&width=128" }}
+                                />
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1">Foto {i + 1}</p>
+                            </div>
+                          ) : (
+                            <div key={i} className="text-center">
+                              <div className="w-28 h-28 rounded-lg overflow-hidden bg-slate-100 border border-dashed border-slate-300 flex items-center justify-center">
+                                <Package className="w-8 h-8 text-slate-300" />
+                              </div>
+                              <p className="text-xs text-slate-400 mt-1">Foto {i + 1} — belum ada</p>
+                            </div>
+                          )
+                        ))}
                       </div>
-                      <p className="text-xs text-slate-500 text-center mt-2">Image path: {selectedGift.image}</p>
                     </div>
                   </div>
                 )}
@@ -1120,8 +1259,10 @@ export default function GiftPage() {
                       <span className="text-purple-900 font-medium">{selectedGift.status}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-purple-700">Has Image:</span>
-                      <span className="text-purple-900 font-medium">{selectedGift.image ? "Yes" : "No"}</span>
+                      <span className="text-purple-700">Images:</span>
+                      <span className="text-purple-900 font-medium">
+                        {[selectedGift.image, selectedGift.image2, selectedGift.image3].filter(Boolean).length}/3
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-purple-700">Has Description:</span>
@@ -1279,74 +1420,124 @@ export default function GiftPage() {
                 />
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="edit-image">Gift Image</Label>
-                <div className="space-y-3">
+              <div className="grid gap-3">
+                <Label>Gift Images</Label>
+
+                {/* Edit Image 1 */}
+                <div className="grid gap-1.5 border border-slate-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-700">Foto 1</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">
+                      {editGiftImage ? "Baru" : currentGiftImage ? "Tersimpan" : "Belum ada"}
+                    </span>
+                  </div>
                   <Input
-                    id="edit-image"
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/gif"
                     onChange={handleEditImageChange}
                     disabled={isEditingGift}
-                    className="cursor-pointer"
+                    className="cursor-pointer h-9 text-sm"
                   />
-
-                  <div className="space-y-2">
-                    {editImagePreview ? (
-                      <div className="relative">
-                        <div className="w-full h-40 rounded-lg overflow-hidden border-2 border-dashed border-blue-300 bg-blue-50">
-                          <Image
-                            src={editImagePreview || "/placeholder.svg"}
-                            alt="New gift image preview"
-                            fill
-                            className="object-contain p-2"
-                          />
-                        </div>
-                        <Button
+                  {(editImagePreview || currentGiftImage) && (
+                    <div className="relative mt-1">
+                      <div className="w-20 h-20 rounded-md overflow-hidden border border-slate-200 bg-slate-50">
+                        <Image
+                          src={editImagePreview ? editImagePreview : getGiftImage(currentGiftImage)}
+                          alt="Foto 1"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      {editGiftImage && (
+                        <button
                           type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute top-2 right-2 h-8 w-8 p-0 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-md"
-                          onClick={() => {
-                            setEditGiftImage(null)
-                            setEditImagePreview(null)
-                          }}
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm hover:bg-red-600"
+                          onClick={() => { setEditGiftImage(null); setEditImagePreview(null) }}
                           disabled={isEditingGift}
                         >
-                          <X className="h-4 w-4" />
-                          <span className="sr-only">Remove new image</span>
-                        </Button>
-                        <div className="absolute bottom-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded">
-                          New Image
-                        </div>
-                      </div>
-                    ) : currentGiftImage ? (
-                      <div className="relative">
-                        <div className="w-full h-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-                          <Image
-                            src={getGiftImage(currentGiftImage) || "/placeholder.svg"}
-                            alt="Current gift image"
-                            fill
-                            className="object-contain p-2"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.src = "/placeholder.svg?height=160&width=320"
-                            }}
-                          />
-                        </div>
-                        <div className="absolute bottom-2 left-2 bg-slate-600 text-white text-xs px-2 py-1 rounded">
-                          Current Image
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="w-full h-40 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center">
-                        <div className="text-center">
-                          <ImageIcon className="w-12 h-12 text-slate-400 mx-auto mb-2" />
-                          <p className="text-sm text-slate-500">No image uploaded</p>
-                        </div>
-                      </div>
-                    )}
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Edit Image 2 */}
+                <div className="grid gap-1.5 border border-slate-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-700">Foto 2</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">
+                      {editGiftImage2 ? "Baru" : currentGiftImage2 ? "Tersimpan" : "Belum ada"}
+                    </span>
                   </div>
+                  <Input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif"
+                    onChange={handleEditImage2Change}
+                    disabled={isEditingGift}
+                    className="cursor-pointer h-9 text-sm"
+                  />
+                  {(editImage2Preview || currentGiftImage2) && (
+                    <div className="relative mt-1">
+                      <div className="w-20 h-20 rounded-md overflow-hidden border border-slate-200 bg-slate-50">
+                        <Image
+                          src={editImage2Preview ? editImage2Preview : getGiftImage(currentGiftImage2)}
+                          alt="Foto 2"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      {editGiftImage2 && (
+                        <button
+                          type="button"
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm hover:bg-red-600"
+                          onClick={() => { setEditGiftImage2(null); setEditImage2Preview(null) }}
+                          disabled={isEditingGift}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Edit Image 3 */}
+                <div className="grid gap-1.5 border border-slate-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-slate-700">Foto 3</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded-full">
+                      {editGiftImage3 ? "Baru" : currentGiftImage3 ? "Tersimpan" : "Belum ada"}
+                    </span>
+                  </div>
+                  <Input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif"
+                    onChange={handleEditImage3Change}
+                    disabled={isEditingGift}
+                    className="cursor-pointer h-9 text-sm"
+                  />
+                  {(editImage3Preview || currentGiftImage3) && (
+                    <div className="relative mt-1">
+                      <div className="w-20 h-20 rounded-md overflow-hidden border border-slate-200 bg-slate-50">
+                        <Image
+                          src={editImage3Preview ? editImage3Preview : getGiftImage(currentGiftImage3)}
+                          alt="Foto 3"
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+                      {editGiftImage3 && (
+                        <button
+                          type="button"
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-red-500 text-white flex items-center justify-center shadow-sm hover:bg-red-600"
+                          onClick={() => { setEditGiftImage3(null); setEditImage3Preview(null) }}
+                          disabled={isEditingGift}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

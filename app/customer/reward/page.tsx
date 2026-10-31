@@ -54,6 +54,8 @@ interface Gift {
   name: string
   total_point: number
   image: string | null
+  image2: string | null
+  image3: string | null
   description: string | null
   claimable: boolean
   pending_claim: { id: string; status: ClaimStatus } | null
@@ -188,6 +190,7 @@ export default function CustomerRewardPage() {
   const [giftsLoading, setGiftsLoading] = useState(true)
   const [loading, setLoading] = useState(true)
   const [selectedLevel, setSelectedLevel] = useState<MemberLevelInfo | null>(null)
+  const [selectedGift, setSelectedGift] = useState<Gift | null>(null)
 
   const [claims, setClaims] = useState<GiftClaim[]>([])
   const [claimsLoading, setClaimsLoading] = useState(true)
@@ -271,20 +274,23 @@ export default function CustomerRewardPage() {
     }
   }
 
-  // Close modal on Escape
+  // Close modals on Escape
   useEffect(() => {
+    const hasModal = !!selectedLevel || !!selectedGift
+    if (!hasModal) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSelectedLevel(null)
-    }
-    if (selectedLevel) {
-      document.addEventListener("keydown", onKey)
-      document.body.style.overflow = "hidden"
-      return () => {
-        document.removeEventListener("keydown", onKey)
-        document.body.style.overflow = ""
+      if (e.key === "Escape") {
+        setSelectedLevel(null)
+        setSelectedGift(null)
       }
     }
-  }, [selectedLevel])
+    document.addEventListener("keydown", onKey)
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      document.body.style.overflow = ""
+    }
+  }, [selectedLevel, selectedGift])
 
   return (
     <div className="space-y-6">
@@ -446,6 +452,7 @@ export default function CustomerRewardPage() {
                   isLockedByPending={isLockedByPending}
                   isClaiming={claimingGiftId === gift.id}
                   onClaim={() => handleClaimGift(gift)}
+                  onOpen={() => setSelectedGift(gift)}
                 />
               )
             })}
@@ -511,6 +518,19 @@ export default function CustomerRewardPage() {
           user={user}
           isCurrent={memberLevel?.current_level?.id === selectedLevel.id}
           onClose={() => setSelectedLevel(null)}
+        />
+      )}
+
+      {/* Gift Detail Modal */}
+      {selectedGift && (
+        <GiftDetailModal
+          gift={selectedGift}
+          activePoints={activePoints}
+          isClaiming={claimingGiftId === selectedGift.id}
+          onClaim={() => {
+            handleClaimGift(selectedGift)
+          }}
+          onClose={() => setSelectedGift(null)}
         />
       )}
     </div>
@@ -637,6 +657,7 @@ function GiftCard({
   isLockedByPending,
   isClaiming,
   onClaim,
+  onOpen,
 }: {
   gift: Gift
   activePoints: number
@@ -645,6 +666,7 @@ function GiftCard({
   isLockedByPending: boolean
   isClaiming: boolean
   onClaim: () => void
+  onOpen: () => void
 }) {
   return (
     <div
@@ -682,18 +704,27 @@ function GiftCard({
         )}
       </div>
 
-      {/* Image */}
-      <div className="aspect-[4/3] bg-slate-100 overflow-hidden">
+      {/* Images */}
+      <div
+        className="bg-slate-100 overflow-hidden cursor-pointer"
+        onClick={onOpen}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen() } }}
+        aria-label={`View details for ${gift.name}`}
+      >
         {gift.image ? (
-          <img
-            src={storageProxyUrl(gift.image) || gift.image}
-            alt={gift.name}
-            className={`w-full h-full object-cover ${gift.claimable || isLockedByPending ? "" : "grayscale"}`}
-            loading="lazy"
-            onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
-          />
+          <div className="aspect-[4/3] flex items-center justify-center overflow-hidden">
+            <img
+              src={storageProxyUrl(gift.image) || gift.image}
+              alt={gift.name}
+              className={`w-full h-full object-cover ${gift.claimable || isLockedByPending ? "" : "grayscale"}`}
+              loading="lazy"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
+            />
+          </div>
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-300">
+          <div className="aspect-[4/3] w-full flex items-center justify-center text-slate-300">
             <Gift className="w-16 h-16" />
           </div>
         )}
@@ -797,6 +828,128 @@ function MyClaimCard({ claim }: { claim: GiftClaim }) {
         {claim.status === "completed" && claim.completed_at && (
           <p className="text-[11px] text-slate-500 mt-1">Completed: {formatDate(claim.completed_at)}</p>
         )}
+      </div>
+    </div>
+  )
+}
+
+// ── GiftDetailModal ───────────────────────────────────────────────────────────
+
+function GiftDetailModal({
+  gift,
+  activePoints,
+  isClaiming,
+  onClaim,
+  onClose,
+}: {
+  gift: Gift
+  activePoints: number
+  isClaiming: boolean
+  onClaim: () => void
+  onClose: () => void
+}) {
+  const remaining = Math.max(0, gift.total_point - activePoints)
+  const pendingStatus = gift.pending_claim?.status ?? null
+  const isLockedByPending = !!gift.pending_claim
+  const images = [gift.image, gift.image2, gift.image3].filter((i): i is string => !!i)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className={[
+          "relative max-w-3xl w-full rounded-3xl overflow-hidden border-2 bg-white",
+          gift.claimable ? "border-amber-400/70 shadow-2xl shadow-amber-500/20" : "border-slate-200 shadow-2xl",
+        ].join(" ")}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/60 hover:bg-black text-white flex items-center justify-center border border-white/20 transition-colors"
+          aria-label="Close"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="max-h-[90vh] overflow-y-auto">
+          {/* Image gallery */}
+          <div className="bg-slate-100">
+            {images.length > 0 ? (
+              <div className={images.length > 1 ? "grid grid-cols-1 sm:grid-cols-3 gap-1" : ""}>
+                {images.map((img, i) => (
+                  <div
+                    key={i}
+                    className={`aspect-[4/3] overflow-hidden ${images.length > 1 ? "" : "max-h-[50vh] w-full"}`}
+                  >
+                    <img
+                      src={storageProxyUrl(img) || img}
+                      alt={`${gift.name} ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="aspect-[16/9] w-full flex items-center justify-center text-slate-300">
+                <Gift className="w-20 h-20" />
+              </div>
+            )}
+          </div>
+
+          {/* Body */}
+          <div className="p-6 md:p-8">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="min-w-0">
+                <h3 className="text-lg md:text-xl font-bold text-slate-900">{gift.name}</h3>
+                {gift.description && (
+                  <p className="text-sm text-slate-600 mt-1.5 whitespace-pre-line">{gift.description}</p>
+                )}
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="text-[11px] text-slate-500 uppercase tracking-wider">Points</p>
+                <p className="text-2xl font-light text-amber-600">
+                  {gift.total_point.toLocaleString("id-ID")}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="text-xs text-slate-500">Your active points</div>
+              <div className="text-sm font-semibold text-slate-800">
+                {activePoints.toLocaleString("id-ID")} pts
+              </div>
+            </div>
+
+            {gift.claimable ? (
+              <button
+                type="button"
+                disabled={isClaiming}
+                onClick={onClaim}
+                className="w-full py-3 rounded-xl text-sm uppercase tracking-wider font-semibold bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-white transition-colors shadow-sm shadow-amber-500/20"
+              >
+                {isClaiming ? (
+                  <span className="inline-flex items-center justify-center gap-1.5">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Claiming…
+                  </span>
+                ) : (
+                  "Claim Now"
+                )}
+              </button>
+            ) : isLockedByPending ? (
+              <div className="w-full py-3 rounded-xl text-sm uppercase tracking-wider font-medium bg-blue-50 border border-blue-200 text-blue-500 text-center">
+                {pendingStatus === "waiting" ? "Awaiting Approval" : "Approved"}
+              </div>
+            ) : (
+              <div className="w-full py-3 rounded-xl text-sm uppercase tracking-wider font-medium bg-slate-100 border border-slate-200 text-slate-400 text-center">
+                Need {remaining.toLocaleString("id-ID")} more pts to claim
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

@@ -89,7 +89,7 @@ export function CustomerDashboardLayout({
 
   return (
     <div
-      className="h-[100dvh] flex overflow-hidden"
+      className="h-[100dvh] flex overflow-hidden font-sans"
       style={{ backgroundColor: "#EFE3D9" }}
     >
       <CustomerSidebar
