@@ -1,0 +1,1165 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import {
+  Loader2,
+  Sparkles,
+  Crown,
+  X,
+  Award,
+  Coins,
+  Gift,
+  Clock,
+  CheckCircle2,
+  Star,
+  Check,
+  ArrowRight,
+  Package,
+} from "lucide-react"
+import { customerFetch } from "@/lib/auth"
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface UserData {
+  id: number
+  name: string
+  full_name: string
+  email: string
+  phone_number: string | null
+  avatar: string | null
+}
+
+interface MemberLevelInfo {
+  id: string
+  name: string
+  min_point: number
+  max_point: number
+  image_url: string | null
+  description: string | null
+}
+
+interface MemberLevelData {
+  total_points: number
+  current_level: MemberLevelInfo | null
+  next_level: MemberLevelInfo | null
+  progress: {
+    current: number
+    min: number
+    target: number
+    percent: number
+  } | null
+  all_levels: MemberLevelInfo[]
+}
+
+type ClaimStatus = "waiting" | "approved" | "rejected" | "completed"
+
+interface Gift {
+  id: string
+  name: string
+  total_point: number
+  image: string | null
+  image2: string | null
+  image3: string | null
+  description: string | null
+  claimable: boolean
+  pending_claim: { id: string; status: ClaimStatus } | null
+  claim_status: string | null
+}
+
+interface GiftsData {
+  total_points: number
+  gifts: Gift[]
+  stats: {
+    total_points: number
+    open_count: number
+    closed_count: number
+  }
+}
+
+interface GiftClaim {
+  id: string
+  gift_id: string
+  gift_name: string | null
+  gift_image: string | null
+  required_point: number
+  status: ClaimStatus
+  notes: string | null
+  admin_note: string | null
+  created_at: string | null
+  approved_at: string | null
+  completed_at: string | null
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const CLAIM_FILTER_LABELS: Record<ClaimStatus, string> = {
+  waiting: "Waiting",
+  approved: "Approved",
+  completed: "Completed",
+  rejected: "Rejected",
+}
+
+const CLAIM_STATUS_META: Record<ClaimStatus, { label: string; badge: string; icon: typeof Clock }> = {
+  waiting: {
+    label: "Waiting",
+    badge: "bg-blue-100 border-blue-300 text-blue-700",
+    icon: Clock,
+  },
+  approved: {
+    label: "Approved",
+    badge: "bg-emerald-100 border-emerald-300 text-emerald-700",
+    icon: CheckCircle2,
+  },
+  completed: {
+    label: "Completed",
+    badge: "bg-slate-100 border-slate-300 text-slate-600",
+    icon: CheckCircle2,
+  },
+  rejected: {
+    label: "Rejected",
+    badge: "bg-red-100 border-red-300 text-red-700",
+    icon: X,
+  },
+}
+
+// The API host (Go API at :8001) is 404-ing its own /storage/... files, so the
+// absolute URLs it returns (http://localhost:8001/storage/...) don't render.
+// Re-route any /storage/... reference (absolute or relative) through the BFF
+// storage proxy, which streams the file from the API's storage disk.
+function storageProxyUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  if (url.startsWith("http")) {
+    try {
+      const u = new URL(url)
+      // Only rewrite /storage/ URLs; leave other origins alone.
+      if (u.pathname.includes("/storage/")) {
+        const rel = u.pathname.replace(/^\/storage\//, "")
+        return `/api/bff/storage/${rel}`
+      }
+    } catch {
+      /* fall through */
+    }
+    return url
+  }
+  // Relative or already-a-storage path
+  return `/api/bff/storage/${url.replace(/^\/storage\//, "").replace(/^\//, "")}`
+}
+
+function formatDate(iso: string | null | undefined) {
+  if (!iso) return ""
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(iso))
+}
+
+function formatPhone(phone: string | null | undefined) {
+  if (!phone) return "—"
+  const cleaned = phone.replace(/\D/g, "")
+  if (cleaned.startsWith("62")) {
+    return "+" + cleaned.replace(/(\d{2})(\d{3})(\d{4})(\d{0,4})/, "$1 $2 $3 $4").trim()
+  }
+  if (cleaned.startsWith("0")) {
+    const converted = "62" + cleaned.substring(1)
+    return "+" + converted.replace(/(\d{2})(\d{3})(\d{4})(\d{0,4})/, "$1 $2 $3 $4").trim()
+  }
+  return phone
+}
+
+function levelAccent(name: string) {
+  const n = name.toLowerCase()
+  if (n.includes("platinum") || n.includes("diamond")) {
+    return { ring: "ring-cyan-400/40", glow: "shadow-cyan-500/20", text: "text-cyan-400", bg: "from-cyan-900/30 to-neutral-900/40" }
+  }
+  if (n.includes("gold")) {
+    return { ring: "ring-amber-400/60", glow: "shadow-amber-500/30", text: "text-amber-400", bg: "from-amber-900/30 to-neutral-900/40" }
+  }
+  if (n.includes("silver")) {
+    return { ring: "ring-slate-300/40", glow: "shadow-slate-300/20", text: "text-slate-300", bg: "from-slate-700/30 to-neutral-900/40" }
+  }
+  if (n.includes("bronze") || n.includes("copper")) {
+    return { ring: "ring-orange-500/40", glow: "shadow-orange-500/20", text: "text-orange-400", bg: "from-orange-900/30 to-neutral-900/40" }
+  }
+  return { ring: "ring-neutral-700/40", glow: "shadow-black/40", text: "text-amber-300", bg: "from-neutral-800/40 to-neutral-900/40" }
+}
+
+// ── Reward Panel (shared by /customer and /customer/reward) ──────────────────
+
+export function CustomerRewardPanel({ showHeader = true }: { showHeader?: boolean }) {
+  const [user, setUser] = useState<UserData | null>(null)
+  const [memberLevel, setMemberLevel] = useState<MemberLevelData | null>(null)
+  const [gifts, setGifts] = useState<Gift[]>([])
+  const [activePoints, setActivePoints] = useState(0)
+  const [giftsLoading, setGiftsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
+  const [selectedLevel, setSelectedLevel] = useState<MemberLevelInfo | null>(null)
+  const [selectedGift, setSelectedGift] = useState<Gift | null>(null)
+
+  const [claims, setClaims] = useState<GiftClaim[]>([])
+  const [claimsLoading, setClaimsLoading] = useState(true)
+  const [claimFilter, setClaimFilter] = useState<ClaimStatus | "all">("all")
+  const [claimingGiftId, setClaimingGiftId] = useState<string | null>(null)
+
+  const fetchClaims = async (filter: ClaimStatus | "all" = "all") => {
+    setClaimsLoading(true)
+    try {
+      const endpoint = filter === "all" ? "gifts/claims" : `gifts/claims?status=${filter}`
+      const { data } = await customerFetch(endpoint)
+      if (data.success && data.data) setClaims(data.data.claims || [])
+    } catch (err) {
+      console.error("Fetch claims error:", err)
+    } finally {
+      setClaimsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const { data } = await customerFetch("me")
+        if (data.success && data.data) setUser(data.data as UserData)
+      } catch (err) {
+        console.error("Fetch user error:", err)
+      }
+
+      try {
+        const { data } = await customerFetch("member-level")
+        if (data.success && data.data) setMemberLevel(data.data as MemberLevelData)
+      } catch (err) {
+        console.error("Fetch member level error:", err)
+      }
+
+      try {
+        const { data } = await customerFetch("gifts")
+        if (data.success && data.data) {
+          const gd = data.data as GiftsData
+          setGifts(gd.gifts)
+          setActivePoints(gd.total_points)
+        }
+      } catch (err) {
+        console.error("Fetch gifts error:", err)
+      } finally {
+        setGiftsLoading(false)
+        setLoading(false)
+      }
+
+      fetchClaims()
+    }
+
+    fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (claimFilter !== "all") fetchClaims(claimFilter)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [claimFilter])
+
+  async function handleClaimGift(gift: Gift) {
+    setClaimingGiftId(gift.id)
+    try {
+      const { ok, data } = await customerFetch("gifts/claim", {
+        method: "POST",
+        body: JSON.stringify({ gift_id: gift.id, notes: "" }),
+      })
+      if (ok) {
+        const { data: giftsData } = await customerFetch("gifts")
+        if (giftsData.success && giftsData.data) {
+          setGifts(giftsData.data.gifts)
+          setActivePoints(giftsData.data.total_points)
+        }
+        fetchClaims()
+      }
+    } catch (err) {
+      console.error("Claim gift error:", err)
+    } finally {
+      setClaimingGiftId(null)
+    }
+  }
+
+  // Close modals on Escape
+  useEffect(() => {
+    const hasModal = !!selectedLevel || !!selectedGift
+    if (!hasModal) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedLevel(null)
+        setSelectedGift(null)
+      }
+    }
+    document.addEventListener("keydown", onKey)
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      document.body.style.overflow = ""
+    }
+  }, [selectedLevel, selectedGift])
+
+  return (
+    <div className="space-y-6">
+      {showHeader && (
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 mb-1">Reward</h1>
+          <p className="text-slate-500 text-sm">Points earned from each of your transactions.</p>
+        </div>
+      )}
+
+      {/* Member Level Section */}
+      <div>
+        <div className="flex items-end justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-500" />
+              Member Level
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              Your membership card and reward tier.
+            </p>
+          </div>
+          {memberLevel && (
+            <div className="text-right">
+              <p className="text-xs text-slate-500">Total Points</p>
+              <p className="text-2xl font-light text-amber-600">
+                {memberLevel.total_points.toLocaleString("id-ID")}
+                <span className="text-xs text-slate-500 ml-1">pts</span>
+              </p>
+            </div>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+          </div>
+        ) : memberLevel && memberLevel.all_levels.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {memberLevel.all_levels.map((level) => (
+              <MemberLevelCard
+                key={level.id}
+                level={level}
+                isCurrent={memberLevel.current_level?.id === level.id}
+                isUnlocked={
+                  !!memberLevel.current_level &&
+                  level.min_point <= memberLevel.current_level.min_point
+                }
+                user={user}
+                onClick={() => setSelectedLevel(level)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center text-slate-500 text-sm">
+            Member level data is not yet available.
+          </div>
+        )}
+
+        {/* Progress bar ke next level */}
+        {memberLevel?.progress && memberLevel.next_level && (
+          <div className="mt-5 bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-slate-600">
+                Progress to{" "}
+                <span className="font-medium text-amber-600">
+                  {memberLevel.next_level.name}
+                </span>
+              </span>
+              <span className="text-xs font-medium text-amber-600">
+                {memberLevel.progress.percent}%
+              </span>
+            </div>
+            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-amber-500 rounded-full transition-all"
+                style={{ width: `${memberLevel.progress.percent}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-slate-500 mt-2">
+              {memberLevel.progress.current.toLocaleString("id-ID")} /{" "}
+              {memberLevel.progress.target.toLocaleString("id-ID")} pts
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/15 mb-2">
+            <Coins className="w-4 h-4 text-amber-600" />
+          </div>
+          <p className="text-lg font-semibold text-amber-600">
+            {giftsLoading ? "…" : activePoints.toLocaleString("id-ID")}
+          </p>
+          <p className="text-[10px] text-slate-500 mt-0.5">Active Points</p>
+        </div>
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/15 mb-2">
+            <Gift className="w-4 h-4 text-emerald-600" />
+          </div>
+          <p className="text-lg font-semibold text-emerald-600">
+            {giftsLoading ? "…" : (memberLevel?.total_points ?? 0).toLocaleString("id-ID")}
+          </p>
+          <p className="text-[10px] text-slate-500 mt-0.5">Total Earned</p>
+        </div>
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+          <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 mb-2">
+            <Clock className="w-4 h-4 text-slate-500" />
+          </div>
+          <p className="text-lg font-semibold text-slate-600">
+            {giftsLoading ? "…" : gifts.filter((g) => g.pending_claim).length}
+          </p>
+          <p className="text-[10px] text-slate-500 mt-0.5">Pending Claims</p>
+        </div>
+      </div>
+
+      {/* Gift Catalog Section */}
+      <div>
+        <div className="flex items-end justify-between mb-5 flex-wrap gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Gift className="w-4 h-4 text-amber-500" />
+              Gift Catalog
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">Redeem your points for exciting rewards.</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-slate-500">Active Points</p>
+            <p className="text-2xl font-light text-amber-600">
+              {giftsLoading ? "…" : activePoints.toLocaleString("id-ID")}
+              <span className="text-xs text-slate-500 ml-1">poin</span>
+            </p>
+          </div>
+        </div>
+
+        {giftsLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+          </div>
+        ) : gifts.length === 0 ? (
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-8 text-center">
+            <Gift className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+            <p className="text-sm text-slate-500">No rewards are available yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {gifts.map((gift) => {
+              const remaining = Math.max(0, gift.total_point - activePoints)
+              const pendingStatus = gift.pending_claim?.status ?? null
+              const isLockedByPending = !!gift.pending_claim
+              return (
+                <GiftCard
+                  key={gift.id}
+                  gift={gift}
+                  activePoints={activePoints}
+                  remaining={remaining}
+                  pendingStatus={pendingStatus}
+                  isLockedByPending={isLockedByPending}
+                  isClaiming={claimingGiftId === gift.id}
+                  onClaim={() => handleClaimGift(gift)}
+                  onOpen={() => setSelectedGift(gift)}
+                />
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* My Claims */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Award className="w-4 h-4 text-amber-500" />
+              My Claims
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">History of your reward claims.</p>
+          </div>
+        </div>
+
+        {/* Filter tabs */}
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {(["all", "waiting", "approved", "completed", "rejected"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setClaimFilter(f)}
+              className={[
+                "px-3 py-1.5 rounded-full text-xs font-medium transition-colors",
+                claimFilter === f
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-500 hover:bg-slate-200",
+              ].join(" ")}
+            >
+              {f === "all" ? "All" : CLAIM_FILTER_LABELS[f]}
+            </button>
+          ))}
+        </div>
+
+        {claimsLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-6 h-6 animate-spin text-amber-500" />
+          </div>
+        ) : claims.length === 0 ? (
+          <div className="rounded-xl bg-slate-50 border border-slate-200 p-8 text-center">
+            <Gift className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+            <p className="text-sm text-slate-500">
+              {claimFilter === "all" ? "No reward claims yet." : "No claims with this status yet."}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {claims.map((claim) => (
+              <MyClaimCard key={claim.id} claim={claim} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Member Level Modal */}
+      {selectedLevel && user && (
+        <MemberLevelModal
+          level={selectedLevel}
+          user={user}
+          isCurrent={memberLevel?.current_level?.id === selectedLevel.id}
+          onClose={() => setSelectedLevel(null)}
+        />
+      )}
+
+      {/* Gift Detail Modal */}
+      {selectedGift && (
+        <GiftDetailModal
+          gift={selectedGift}
+          activePoints={activePoints}
+          isClaiming={claimingGiftId === selectedGift.id}
+          onClaim={() => {
+            handleClaimGift(selectedGift)
+          }}
+          onClose={() => setSelectedGift(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── MemberLevelCard ───────────────────────────────────────────────────────────
+
+function MemberLevelCard({
+  level,
+  isCurrent,
+  isUnlocked,
+  user,
+  onClick,
+}: {
+  level: MemberLevelInfo
+  isCurrent: boolean
+  isUnlocked: boolean
+  user: UserData | null
+  onClick: () => void
+}) {
+  const accent = levelAccent(level.name)
+  const fullName = user?.full_name || user?.name || "Member"
+  const phone = formatPhone(user?.phone_number)
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={[
+        "relative w-full text-left rounded-2xl overflow-hidden transition-all duration-300 cursor-pointer",
+        "hover:scale-[1.02] hover:-translate-y-0.5",
+        isCurrent
+          ? `shadow-lg ${accent.glow} ring-1 ${accent.ring}`
+          : isUnlocked
+          ? "border border-slate-200 shadow-sm"
+          : "border border-slate-200 shadow-sm opacity-70 hover:opacity-100",
+      ].join(" ")}
+    >
+      <div className={`absolute inset-0 bg-gradient-to-br ${accent.bg} pointer-events-none rounded-2xl`} />
+
+      {isCurrent && (
+        <div className="absolute top-3 right-3 z-10 inline-flex items-center gap-1 bg-amber-500 text-white text-[10px] uppercase tracking-wider px-2 py-1 rounded-full font-medium">
+          <Crown className="w-3 h-3" />
+          Your Level
+        </div>
+      )}
+
+      {!isUnlocked && (
+        <div className="absolute top-3 right-3 z-10 inline-flex items-center gap-1 bg-slate-700/90 text-slate-200 text-[10px] uppercase tracking-wider px-2 py-1 rounded-full border border-slate-600">
+          <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+          Locked
+        </div>
+      )}
+
+      <div className="relative p-4 flex flex-col gap-3">
+        <div className="relative w-full rounded-xl overflow-hidden bg-slate-100">
+          <div className="w-full aspect-[16/9] flex items-center justify-center">
+            {level.image_url ? (
+              <img
+                src={storageProxyUrl(level.image_url) || level.image_url}
+                alt={level.name}
+                className="w-full h-full object-cover"
+                loading="lazy"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+                <Award className="w-12 h-12 text-amber-400/60" />
+              </div>
+            )}
+          </div>
+
+          <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none rounded-b-xl" />
+          <div className="absolute inset-x-3 bottom-2 text-left">
+            <p className="text-[9px] uppercase tracking-[0.2em] text-amber-300/90 mb-0.5">
+              Point Program
+            </p>
+            <p className="text-sm font-medium text-white leading-tight truncate" title={fullName}>
+              {fullName}
+            </p>
+            <p className="text-[11px] text-slate-200/80 truncate" title={phone}>
+              {phone}
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Award className={`w-3.5 h-3.5 ${accent.text}`} />
+            <p className={`text-xs uppercase tracking-wider font-semibold ${accent.text}`}>
+              {level.name}
+            </p>
+          </div>
+          <p className="text-[11px] text-slate-600">
+            {level.min_point.toLocaleString("id-ID")}
+            {level.max_point > 0
+              ? ` – ${level.max_point.toLocaleString("id-ID")} pts`
+              : "+ pts"}
+          </p>
+          {level.description && (
+            <p className="text-[10px] text-slate-500 mt-2 line-clamp-2">
+              {level.description}
+            </p>
+          )}
+        </div>
+      </div>
+    </button>
+  )
+}
+
+// ── MemberLevelModal ──────────────────────────────────────────────────────────
+
+// ── GiftCard ──────────────────────────────────────────────────────────────────
+
+function GiftCard({
+  gift,
+  activePoints,
+  remaining,
+  pendingStatus,
+  isLockedByPending,
+  isClaiming,
+  onClaim,
+  onOpen,
+}: {
+  gift: Gift
+  activePoints: number
+  remaining: number
+  pendingStatus: ClaimStatus | null
+  isLockedByPending: boolean
+  isClaiming: boolean
+  onClaim: () => void
+  onOpen: () => void
+}) {
+  return (
+    <div
+      className={[
+        "relative bg-white border rounded-2xl overflow-hidden transition-all",
+        gift.claimable
+          ? "border-amber-400/50 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/10"
+          : isLockedByPending
+          ? "border-blue-400/30"
+          : "border-slate-200 opacity-75",
+      ].join(" ")}
+    >
+      {/* Status badge */}
+      <div className="absolute top-3 right-3 z-10">
+        {pendingStatus === "waiting" ? (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-blue-100 border border-blue-300 text-blue-700">
+            <Clock className="w-3 h-3" />
+            Waiting
+          </span>
+        ) : pendingStatus === "approved" ? (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-emerald-100 border border-emerald-300 text-emerald-700">
+            <CheckCircle2 className="w-3 h-3" />
+            Approved
+          </span>
+        ) : gift.claimable ? (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-amber-100 border border-amber-300 text-amber-700">
+            <Sparkles className="w-3 h-3" />
+            Claimable
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-slate-100 border border-slate-300 text-slate-500">
+            <Coins className="w-3 h-3" />
+            Locked
+          </span>
+        )}
+      </div>
+
+      {/* Images */}
+      <div
+        className="bg-slate-100 overflow-hidden cursor-pointer"
+        onClick={onOpen}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen() } }}
+        aria-label={`View details for ${gift.name}`}
+      >
+        {gift.image ? (
+          <div className="aspect-[4/3] flex items-center justify-center overflow-hidden">
+            <img
+              src={storageProxyUrl(gift.image) || gift.image}
+              alt={gift.name}
+              className={`w-full h-full object-cover ${gift.claimable || isLockedByPending ? "" : "grayscale"}`}
+              loading="lazy"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
+            />
+          </div>
+        ) : (
+          <div className="aspect-[4/3] w-full flex items-center justify-center text-slate-300">
+            <Gift className="w-16 h-16" />
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="p-4">
+        <h3 className="text-sm font-semibold text-slate-900 truncate">{gift.name}</h3>
+        {gift.description && (
+          <p className="text-xs text-slate-500 mt-1 line-clamp-2">{gift.description}</p>
+        )}
+
+        <div className="mt-3 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs text-slate-500">Points Required</span>
+            <span className="text-sm font-semibold text-amber-600">
+              {gift.total_point.toLocaleString("id-ID")}
+            </span>
+          </div>
+
+          {gift.claimable ? (
+            <button
+              type="button"
+              disabled={isClaiming}
+              onClick={onClaim}
+              className="w-full py-2 rounded-xl text-xs uppercase tracking-wider font-semibold bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-white transition-colors shadow-sm shadow-amber-500/20"
+            >
+              {isClaiming ? (
+                <span className="inline-flex items-center justify-center gap-1.5">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Claiming…
+                </span>
+              ) : (
+                "Claim Now"
+              )}
+            </button>
+          ) : isLockedByPending ? (
+            <button
+              type="button"
+              disabled
+              className="w-full py-2 rounded-xl text-xs uppercase tracking-wider font-medium cursor-not-allowed bg-blue-50 border border-blue-200 text-blue-500"
+            >
+              {pendingStatus === "waiting" ? "Awaiting Approval" : "Approved"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="w-full py-2 rounded-xl text-xs uppercase tracking-wider font-medium cursor-not-allowed bg-slate-100 border border-slate-200 text-slate-400"
+            >
+              Need {remaining.toLocaleString("id-ID")} more pts
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── MyClaimCard ───────────────────────────────────────────────────────────────
+
+function MyClaimCard({ claim }: { claim: GiftClaim }) {
+  const meta = CLAIM_STATUS_META[claim.status] ?? CLAIM_STATUS_META.waiting
+  const StatusIcon = meta.icon
+
+  return (
+    <div className="rounded-xl bg-white border border-slate-200 p-4 flex items-start gap-3">
+      {/* Image */}
+      <div className="w-14 h-14 rounded-lg bg-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+        {claim.gift_image ? (
+          <img
+            src={storageProxyUrl(claim.gift_image) || claim.gift_image}
+            alt={claim.gift_name || ""}
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
+          />
+        ) : (
+          <Gift className="w-6 h-6 text-slate-300" />
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap mb-1">
+          <p className="text-sm font-semibold text-slate-900 truncate">{claim.gift_name || "Reward"}</p>
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider border ${meta.badge}`}
+          >
+            <StatusIcon className="w-3 h-3" />
+            {meta.label}
+          </span>
+        </div>
+        <p className="text-xs text-slate-500">
+          {claim.required_point.toLocaleString("id-ID")} pts · {formatDate(claim.created_at)}
+        </p>
+        {claim.notes && <p className="text-[11px] text-slate-500 mt-1 italic">Note: {claim.notes}</p>}
+        {claim.status === "rejected" && claim.admin_note && (
+          <p className="text-[11px] text-red-600 mt-1">Reason: {claim.admin_note}</p>
+        )}
+        {claim.status === "completed" && claim.completed_at && (
+          <p className="text-[11px] text-slate-500 mt-1">Completed: {formatDate(claim.completed_at)}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── GiftDetailModal ───────────────────────────────────────────────────────────
+
+/**
+ * Split a gift's free-text description into a prose summary + an optional
+ * "Package Includes" list. The admin writes everything in one `description`
+ * field, so we look for bullet/numbered lines to render as includes; any
+ * non-list text becomes the summary. Falls back gracefully when there's no
+ * structure (e.g. pure prose) — `includes` is then empty.
+ */
+function parseGiftDetails(description: string | null): { summary: string; includes: string[] } {
+  if (!description) return { summary: "", includes: [] }
+  const lines = description.split(/\r?\n/).map((l) => l.trim())
+  const bulletRe = /^\s*(?:[-*•]|\d+[.)])\s+/
+  const includes: string[] = []
+  const summaryLines: string[] = []
+  let inList = false
+  for (const raw of lines) {
+    if (raw === "") {
+      inList = false
+      continue
+    }
+    if (bulletRe.test(raw)) {
+      includes.push(raw.replace(bulletRe, "").trim())
+      inList = true
+    } else if (/^(package\s+includes|includes|termasuk)/i.test(raw)) {
+      inList = false
+      continue // list header line, skip
+    } else {
+      summaryLines.push(raw)
+      inList = false
+    }
+  }
+  const summary = summaryLines.join(" ").trim()
+  return { summary, includes }
+}
+
+function giftCategory(gift: Gift): string {
+  const d = (gift.description ?? "").toLowerCase()
+  if (d.includes("travel") || d.includes("trip") || d.includes("itinerary") || d.includes("destination") || d.includes("flight") || d.includes("hotel") || d.includes("villa")) {
+    return "Travel Experience"
+  }
+  if (d.includes("coupon") || d.includes("voucher") || d.includes("discount") || d.includes("code")) {
+    return "Coupon & Voucher"
+  }
+  if (d.includes("e-book") || d.includes("ebook") || d.includes("tutorial") || d.includes("course") || d.includes("access")) {
+    return "Digital Access"
+  }
+  if (d.includes("device") || d.includes("gadget") || d.includes("electronics") || d.includes("product") || d.includes("item")) {
+    return "Physical Reward"
+  }
+  return "Reward"
+}
+
+function GiftDetailModal({
+  gift,
+  activePoints,
+  isClaiming,
+  onClaim,
+  onClose,
+}: {
+  gift: Gift
+  activePoints: number
+  isClaiming: boolean
+  onClaim: () => void
+  onClose: () => void
+}) {
+  const remaining = Math.max(0, gift.total_point - activePoints)
+  const pendingStatus = gift.pending_claim?.status ?? null
+  const isLockedByPending = !!gift.pending_claim
+  const images = [gift.image, gift.image2, gift.image3].filter((i): i is string => !!i)
+  const [activeIdx, setActiveIdx] = useState(0)
+  const { summary, includes } = parseGiftDetails(gift.description)
+  const category = giftCategory(gift)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-5xl w-full rounded-3xl overflow-hidden bg-white shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+          aria-label="Close"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="max-h-[90vh] overflow-y-auto">
+          <div className="flex flex-col lg:flex-row">
+            {/* ── Left: image gallery ── */}
+            <div className="lg:w-3/5 bg-slate-50 flex flex-col">
+              <div className="relative aspect-[4/3] lg:aspect-auto lg:flex-1 overflow-hidden">
+                {images.length > 0 ? (
+                  <img
+                    src={storageProxyUrl(images[activeIdx]) || images[activeIdx]}
+                    alt={gift.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-slate-100 text-slate-300">
+                    <Gift className="w-20 h-20" />
+                  </div>
+                )}
+                {images.length > 0 && (
+                  <span className="absolute bottom-3 left-3 z-10 text-[11px] font-medium text-white/90 bg-black/40 rounded-full px-2.5 py-1 backdrop-blur-sm">
+                    {activeIdx + 1} / {images.length}
+                  </span>
+                )}
+              </div>
+
+              {images.length > 1 && (
+                <div className="grid grid-cols-4 gap-2 p-3">
+                  {images.map((img, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setActiveIdx(i)}
+                      className={[
+                        "aspect-[4/3] rounded-lg overflow-hidden border-2 transition-all",
+                        i === activeIdx
+                          ? "border-amber-500 ring-2 ring-amber-400/40"
+                          : "border-transparent opacity-80 hover:opacity-100",
+                      ].join(" ")}
+                    >
+                      <img
+                        src={storageProxyUrl(img) || img}
+                        alt={`${gift.name} ${i + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Right: detail panel ── */}
+            <div className="lg:w-2/5 p-6 md:p-8 flex flex-col">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-slate-400 mb-3 flex items-center gap-1.5">
+                <Package className="w-3.5 h-3.5" />
+                {category}
+              </p>
+
+              <h3 className="text-2xl font-bold text-slate-900 leading-tight mb-3">
+                {gift.name}
+              </h3>
+
+              <div className="flex items-center gap-2 mb-5">
+                <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
+                <span className="text-2xl font-semibold text-amber-600">
+                  {gift.total_point.toLocaleString("id-ID")}
+                </span>
+                <span className="text-sm text-slate-400">pts</span>
+              </div>
+
+              {summary && (
+                <p className="text-sm text-slate-600 leading-relaxed mb-5">{summary}</p>
+              )}
+
+              {includes.length > 0 && (
+                <div className="mb-6">
+                  <p className="text-sm font-semibold text-slate-800 mb-3">Package Includes:</p>
+                  <ul className="space-y-2.5">
+                    {includes.map((line, i) => (
+                      <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
+                        <span className="mt-0.5 shrink-0 w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
+                          <Check className="w-2.5 h-2.5 text-emerald-600" />
+                        </span>
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div className="mt-auto pt-4 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-3 text-xs text-slate-500">
+                  <span>Your active points</span>
+                  <span className="font-medium text-slate-800">
+                    {activePoints.toLocaleString("id-ID")} pts
+                  </span>
+                </div>
+
+                {gift.claimable ? (
+                  <button
+                    type="button"
+                    disabled={isClaiming}
+                    onClick={onClaim}
+                    className="group w-full py-3.5 rounded-xl text-sm font-medium bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-60 text-white transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2"
+                  >
+                    {isClaiming ? (
+                      <span className="inline-flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Redeeming…
+                      </span>
+                    ) : (
+                      <>
+                        Redeem Reward
+                        <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+                      </>
+                    )}
+                  </button>
+                ) : isLockedByPending ? (
+                  <div className="w-full py-3.5 rounded-xl text-sm font-medium bg-blue-50 border border-blue-200 text-blue-500 text-center flex items-center justify-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    {pendingStatus === "waiting" ? "Awaiting Approval" : "Approved"}
+                  </div>
+                ) : (
+                  <div className="w-full py-3.5 rounded-xl text-sm font-medium bg-slate-100 border border-slate-200 text-slate-400 text-center">
+                    Need {remaining.toLocaleString("id-ID")} more pts to redeem
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── MemberLevelModal ──────────────────────────────────────────────────────────
+
+function MemberLevelModal({
+  level,
+  user,
+  isCurrent,
+  onClose,
+}: {
+  level: MemberLevelInfo
+  user: UserData
+  isCurrent: boolean
+  onClose: () => void
+}) {
+  const accent = levelAccent(level.name)
+  const fullName = user.full_name || user.name || "Member"
+  const phone = formatPhone(user.phone_number)
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className={[
+          "relative max-w-3xl w-full rounded-3xl overflow-hidden border-2 bg-white",
+          isCurrent ? `border-amber-400/70 shadow-2xl ${accent.glow}` : "border-slate-200 shadow-2xl",
+        ].join(" ")}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className={`absolute inset-0 bg-gradient-to-br ${accent.bg} pointer-events-none`} />
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/60 hover:bg-black text-white flex items-center justify-center border border-white/20 transition-colors"
+          aria-label="Close"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <div className="relative p-6 md:p-8 flex flex-col gap-5">
+          <div className="relative w-full rounded-2xl overflow-hidden bg-slate-100">
+            <div className="w-full max-h-[70vh] flex items-center justify-center">
+              {level.image_url ? (
+                <img
+                  src={storageProxyUrl(level.image_url) || level.image_url}
+                  alt={level.name}
+                  className="w-full max-h-[70vh] object-cover"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
+                />
+              ) : (
+                <div className="w-full h-64 flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
+                  <Award className="w-20 h-20 text-amber-400/60" />
+                </div>
+              )}
+            </div>
+
+            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
+            <div className="absolute inset-x-5 bottom-4 text-left">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-amber-300/90 mb-1">
+                Point Program
+              </p>
+              <p className="text-xl md:text-2xl font-medium text-white leading-tight" title={fullName}>
+                {fullName}
+              </p>
+              <p className="text-sm text-slate-200/80 mt-0.5" title={phone}>
+                {phone}
+              </p>
+            </div>
+
+            {isCurrent && (
+              <div className="absolute top-4 left-4 z-10 inline-flex items-center gap-1 bg-amber-500 text-white text-xs uppercase tracking-wider px-3 py-1.5 rounded-full font-medium">
+                <Crown className="w-3.5 h-3.5" />
+                Your Level
+              </div>
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Award className={`w-5 h-5 ${accent.text}`} />
+              <p className={`text-base md:text-lg uppercase tracking-wider font-semibold ${accent.text}`}>
+                {level.name}
+              </p>
+            </div>
+            <p className="text-sm text-slate-700">
+              {level.min_point.toLocaleString("id-ID")}
+              {level.max_point > 0
+                ? ` – ${level.max_point.toLocaleString("id-ID")} pts`
+                : "+ pts"}
+            </p>
+            {level.description && (
+              <p className="text-sm text-slate-600 mt-3">{level.description}</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

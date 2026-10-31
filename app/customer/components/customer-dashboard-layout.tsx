@@ -76,7 +76,7 @@ export function CustomerDashboardLayout({
   }
 
   const currentLabel = pathname === "/customer"
-    ? "Dashboard"
+    ? "Home"
     : pathname === "/customer/account"
     ? "Account"
     : pathname === "/customer/orders"

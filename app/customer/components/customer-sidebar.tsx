@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation"
 import {
+  Home,
   User,
   ShoppingBag,
   Gift,
@@ -12,6 +13,7 @@ import {
 import { logoutCustomer } from "@/lib/auth"
 
 const NAV_ITEMS = [
+  { label: "Home", icon: Home, href: "/customer" },
   { label: "Account", icon: User, href: "/customer/account" },
   { label: "Orders", icon: ShoppingBag, href: "/customer/orders" },
   { label: "Reward", icon: Gift, href: "/customer/reward" },
