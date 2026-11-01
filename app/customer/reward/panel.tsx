@@ -38,7 +38,7 @@ interface MemberLevelInfo {
   description: string | null
 }
 
-interface MemberLevelData {
+export interface MemberLevelData {
   total_points: number
   current_level: MemberLevelInfo | null
   next_level: MemberLevelInfo | null
@@ -53,10 +53,11 @@ interface MemberLevelData {
 
 type ClaimStatus = "waiting" | "approved" | "rejected" | "completed"
 
-interface Gift {
+export interface Gift {
   id: string
   name: string
   total_point: number
+  is_featured?: boolean
   image: string | null
   image2: string | null
   image3: string | null
@@ -200,6 +201,13 @@ export function CustomerRewardPanel({ showHeader = true }: { showHeader?: boolea
   const [claimsLoading, setClaimsLoading] = useState(true)
   const [claimFilter, setClaimFilter] = useState<ClaimStatus | "all">("all")
   const [claimingGiftId, setClaimingGiftId] = useState<string | null>(null)
+  const [exploreAll, setExploreAll] = useState(false)
+
+  // Split the catalog into the two hero (featured) cards and the supporting grid.
+  const featured = gifts.filter((g) => g.is_featured).slice(0, 2)
+  const rest = gifts.filter((g) => !g.is_featured)
+  const heroGifts = exploreAll ? [] : featured
+  const gridGifts = exploreAll ? gifts : rest
 
   const fetchClaims = async (filter: ClaimStatus | "all" = "all") => {
     setClaimsLoading(true)
@@ -413,23 +421,28 @@ export function CustomerRewardPanel({ showHeader = true }: { showHeader?: boolea
         </div>
       </div>
 
-      {/* Gift Catalog Section */}
+      {/* Featured Rewards Section */}
       <div>
-        <div className="flex items-end justify-between mb-5 flex-wrap gap-3">
+        <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <Gift className="w-4 h-4 text-amber-500" />
-              Gift Catalog
+            <h2 className="font-[Georgia,serif] text-2xl font-bold text-slate-900 tracking-wide">
+              Featured Rewards
             </h2>
-            <p className="text-xs text-slate-500 mt-1">Redeem your points for exciting rewards.</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-slate-500">Active Points</p>
-            <p className="text-2xl font-light text-amber-600">
-              {giftsLoading ? "…" : activePoints.toLocaleString("id-ID")}
-              <span className="text-xs text-slate-500 ml-1">poin</span>
+            <p className="text-sm text-slate-500 mt-1">
+              Extraordinary experiences. Exceptional living.
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setExploreAll((v) => !v)}
+            className={[
+              "inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider transition-colors",
+              exploreAll ? "text-amber-600" : "text-slate-900 hover:text-amber-600",
+            ].join(" ")}
+          >
+            {exploreAll ? "View Featured" : "Explore All Rewards"}
+            <ArrowRight className={`w-3.5 h-3.5 transition-transform ${exploreAll ? "-rotate-90" : ""}`} />
+          </button>
         </div>
 
         {giftsLoading ? (
@@ -442,26 +455,35 @@ export function CustomerRewardPanel({ showHeader = true }: { showHeader?: boolea
             <p className="text-sm text-slate-500">No rewards are available yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {gifts.map((gift) => {
-              const remaining = Math.max(0, gift.total_point - activePoints)
-              const pendingStatus = gift.pending_claim?.status ?? null
-              const isLockedByPending = !!gift.pending_claim
-              return (
-                <GiftCard
+          <>
+            {/* Hero cards — the two featured gifts */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {heroGifts.map((gift) => (
+                <RewardHeroCard
                   key={gift.id}
                   gift={gift}
                   activePoints={activePoints}
-                  remaining={remaining}
-                  pendingStatus={pendingStatus}
-                  isLockedByPending={isLockedByPending}
                   isClaiming={claimingGiftId === gift.id}
-                  onClaim={() => handleClaimGift(gift)}
                   onOpen={() => setSelectedGift(gift)}
                 />
-              )
-            })}
-          </div>
+              ))}
+            </div>
+
+            {/* Supporting grid — remaining gifts */}
+            {gridGifts.length > 0 && (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                {gridGifts.map((gift) => (
+                  <RewardCard
+                    key={gift.id}
+                    gift={gift}
+                    activePoints={activePoints}
+                    isClaiming={claimingGiftId === gift.id}
+                    onOpen={() => setSelectedGift(gift)}
+                  />
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -652,66 +674,166 @@ function MemberLevelCard({
 
 // ── MemberLevelModal ──────────────────────────────────────────────────────────
 
-// ── GiftCard ──────────────────────────────────────────────────────────────────
+// ── Reward card state helpers + card components ──────────────────────────────
 
-function GiftCard({
+// ── Reward state helpers (shared by hero + grid cards) ────────────────────────
+
+function useGiftState(gift: Gift, activePoints: number) {
+  const remaining = Math.max(0, gift.total_point - activePoints)
+  const pendingStatus = gift.pending_claim?.status ?? null
+  const isLockedByPending = !!gift.pending_claim
+  const redeemLabel = gift.claimable
+    ? "Redeem Reward"
+    : isLockedByPending
+    ? pendingStatus === "waiting"
+      ? "Awaiting Approval"
+      : "Approved"
+    : `Need ${remaining.toLocaleString("id-ID")} more pts`
+  return { remaining, pendingStatus, isLockedByPending, redeemLabel }
+}
+
+// ── RewardHeroCard ─────────────────────────────────────────────────────────────
+
+export function RewardHeroCard({
   gift,
   activePoints,
-  remaining,
-  pendingStatus,
-  isLockedByPending,
   isClaiming,
-  onClaim,
   onOpen,
 }: {
   gift: Gift
   activePoints: number
-  remaining: number
-  pendingStatus: ClaimStatus | null
-  isLockedByPending: boolean
   isClaiming: boolean
-  onClaim: () => void
   onOpen: () => void
 }) {
+  const { pendingStatus, isLockedByPending, redeemLabel } = useGiftState(gift, activePoints)
+  const claimable = gift.claimable
+  const muted = !claimable && !isLockedByPending
+
   return (
     <div
       className={[
-        "relative bg-white border rounded-2xl overflow-hidden transition-all",
-        gift.claimable
-          ? "border-amber-400/50 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/10"
-          : isLockedByPending
-          ? "border-blue-400/30"
-          : "border-slate-200 opacity-75",
+        "relative group rounded-2xl overflow-hidden border cursor-pointer transition-all h-72 md:h-80",
+        claimable
+          ? "border-amber-400/40 hover:shadow-xl hover:shadow-amber-500/10"
+          : "border-slate-200",
       ].join(" ")}
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen() } }}
+      aria-label={`View details for ${gift.name}`}
     >
+      {/* Cover image */}
+      {gift.image ? (
+        <img
+          src={storageProxyUrl(gift.image) || gift.image}
+          alt={gift.name}
+          className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${muted ? "grayscale opacity-80" : ""}`}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
+        />
+      ) : (
+        <div className="absolute inset-0 bg-slate-100 flex items-center justify-center text-slate-300">
+          <Gift className="w-16 h-16" />
+        </div>
+      )}
+
+      {/* Gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/5" />
+
       {/* Status badge */}
       <div className="absolute top-3 right-3 z-10">
         {pendingStatus === "waiting" ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-blue-100 border border-blue-300 text-blue-700">
-            <Clock className="w-3 h-3" />
-            Waiting
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-blue-100/90 border border-blue-300 text-blue-800">
+            <Clock className="w-3 h-3" /> Waiting
           </span>
         ) : pendingStatus === "approved" ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-emerald-100 border border-emerald-300 text-emerald-700">
-            <CheckCircle2 className="w-3 h-3" />
-            Approved
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-emerald-100/90 border border-emerald-300 text-emerald-800">
+            <CheckCircle2 className="w-3 h-3" /> Approved
           </span>
-        ) : gift.claimable ? (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-amber-100 border border-amber-300 text-amber-700">
-            <Sparkles className="w-3 h-3" />
-            Claimable
+        ) : claimable ? (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-amber-100/90 border border-amber-300 text-amber-800">
+            <Sparkles className="w-3 h-3" /> Claimable
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-slate-100 border border-slate-300 text-slate-500">
-            <Coins className="w-3 h-3" />
-            Locked
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider bg-slate-100/90 border border-slate-300 text-slate-600">
+            <Coins className="w-3 h-3" /> Locked
           </span>
         )}
       </div>
 
-      {/* Images */}
+      {/* Content */}
+      <div className="absolute inset-x-0 bottom-0 p-5 md:p-6 z-10">
+        <p className="font-[Georgia,serif] text-2xl md:text-3xl font-semibold text-white mb-1 leading-tight">
+          {gift.name}
+        </p>
+        <div className="flex items-center gap-1.5 text-amber-300 mb-4">
+          <Star className="w-4 h-4 fill-current" />
+          <span className="text-lg font-semibold">
+            {gift.total_point.toLocaleString("id-ID")}
+          </span>
+          <span className="text-sm text-slate-300">pts</span>
+        </div>
+
+        <button
+          type="button"
+          disabled={isClaiming}
+          onClick={(e) => {
+            e.stopPropagation()
+            if (claimable) onOpen()
+          }}
+          className={[
+            "w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider transition-colors border",
+            claimable
+              ? "bg-white/10 backdrop-blur-sm border-white/40 text-white hover:bg-white/20 disabled:opacity-60"
+              : "bg-transparent border-slate-500/50 text-slate-400 cursor-not-allowed",
+          ].join(" ")}
+        >
+          {isClaiming ? (
+            <span className="inline-flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Redeeming…
+            </span>
+          ) : (
+            <>
+              {redeemLabel}
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── RewardCard ─────────────────────────────────────────────────────────────────
+
+function RewardCard({
+  gift,
+  activePoints,
+  isClaiming,
+  onOpen,
+}: {
+  gift: Gift
+  activePoints: number
+  isClaiming: boolean
+  onOpen: () => void
+}) {
+  const { pendingStatus, isLockedByPending, redeemLabel } = useGiftState(gift, activePoints)
+  const claimable = gift.claimable
+  const muted = !claimable && !isLockedByPending
+  const category = giftCategory(gift)
+
+  return (
+    <div
+      className={[
+        "group bg-white border rounded-xl overflow-hidden transition-all flex flex-col",
+        claimable
+          ? "border-amber-400/50 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/10"
+          : "border-slate-200",
+      ].join(" ")}
+    >
+      {/* Image */}
       <div
-        className="bg-slate-100 overflow-hidden cursor-pointer"
+        className="relative bg-slate-100 overflow-hidden cursor-pointer"
         onClick={onOpen}
         role="button"
         tabIndex={0}
@@ -719,71 +841,64 @@ function GiftCard({
         aria-label={`View details for ${gift.name}`}
       >
         {gift.image ? (
-          <div className="aspect-[4/3] flex items-center justify-center overflow-hidden">
+          <div className="aspect-[4/3] w-full overflow-hidden">
             <img
               src={storageProxyUrl(gift.image) || gift.image}
               alt={gift.name}
-              className={`w-full h-full object-cover ${gift.claimable || isLockedByPending ? "" : "grayscale"}`}
+              className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${muted ? "grayscale" : ""}`}
               loading="lazy"
               onError={(e) => { (e.target as HTMLImageElement).style.display = "none" }}
             />
           </div>
         ) : (
           <div className="aspect-[4/3] w-full flex items-center justify-center text-slate-300">
-            <Gift className="w-16 h-16" />
+            <Gift className="w-12 h-12" />
           </div>
         )}
       </div>
 
       {/* Body */}
-      <div className="p-4">
-        <h3 className="text-sm font-semibold text-slate-900 truncate">{gift.name}</h3>
-        {gift.description && (
-          <p className="text-xs text-slate-500 mt-1 line-clamp-2">{gift.description}</p>
-        )}
+      <div className="p-4 flex flex-col flex-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+          {category}
+        </p>
+        <h3
+          className="font-[Georgia,serif] text-base font-semibold text-slate-900 leading-snug cursor-pointer hover:text-amber-600 line-clamp-2"
+          onClick={onOpen}
+        >
+          {gift.name}
+        </h3>
 
-        <div className="mt-3 pt-3 border-t border-slate-100">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs text-slate-500">Points Required</span>
-            <span className="text-sm font-semibold text-amber-600">
-              {gift.total_point.toLocaleString("id-ID")}
-            </span>
-          </div>
-
-          {gift.claimable ? (
-            <button
-              type="button"
-              disabled={isClaiming}
-              onClick={onClaim}
-              className="w-full py-2 rounded-xl text-xs uppercase tracking-wider font-semibold bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-white transition-colors shadow-sm shadow-amber-500/20"
-            >
-              {isClaiming ? (
-                <span className="inline-flex items-center justify-center gap-1.5">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Claiming…
-                </span>
-              ) : (
-                "Claim Now"
-              )}
-            </button>
-          ) : isLockedByPending ? (
-            <button
-              type="button"
-              disabled
-              className="w-full py-2 rounded-xl text-xs uppercase tracking-wider font-medium cursor-not-allowed bg-blue-50 border border-blue-200 text-blue-500"
-            >
-              {pendingStatus === "waiting" ? "Awaiting Approval" : "Approved"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="w-full py-2 rounded-xl text-xs uppercase tracking-wider font-medium cursor-not-allowed bg-slate-100 border border-slate-200 text-slate-400"
-            >
-              Need {remaining.toLocaleString("id-ID")} more pts
-            </button>
-          )}
+        <div className="flex items-center gap-1 text-amber-500 mt-2">
+          <Star className="w-3.5 h-3.5 fill-current" />
+          <span className="text-sm font-semibold">
+            {gift.total_point.toLocaleString("id-ID")}
+          </span>
+          <span className="text-xs text-slate-400">pts</span>
         </div>
+
+        <button
+          type="button"
+          disabled={isClaiming || !claimable}
+          onClick={() => { if (claimable) onOpen() }}
+          className={[
+            "mt-4 w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors border",
+            claimable
+              ? "bg-amber-500 hover:bg-amber-400 border-amber-500 text-white disabled:opacity-60"
+              : "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed",
+          ].join(" ")}
+        >
+          {isClaiming ? (
+            <span className="inline-flex items-center gap-1.5">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Redeeming…
+            </span>
+          ) : (
+            <>
+              {redeemLabel}
+              <ArrowRight className="w-3.5 h-3.5" />
+            </>
+          )}
+        </button>
       </div>
     </div>
   )

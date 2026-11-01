@@ -1,7 +1,7 @@
 "use client"
 
-import { CustomerRewardPanel } from "./reward/panel"
+import { CustomerHome } from "./home/home"
 
 export default function CustomerDashboardPage() {
-  return <CustomerRewardPanel showHeader={false} />
+  return <CustomerHome />
 }
