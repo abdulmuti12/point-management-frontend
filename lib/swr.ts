@@ -5,6 +5,7 @@
  * the Bearer token from the HttpOnly cookie — the browser never sees it.
  */
 import type { FetchResult, PaginatedResponse } from "@/lib/types"
+import { scheduleCustomerRedirect } from "@/lib/auth"
 
 export interface ListParams {
   page?: number
@@ -32,7 +33,15 @@ async function bffFetch(endpoint: string, options: RequestInit = {}): Promise<Fe
   const data = await res.json().catch(() => ({}))
 
   if (res.status === 401 && typeof window !== "undefined") {
-    window.location.href = endpoint.includes("customer") ? "/customer/login" : "/login"
+    if (endpoint.includes("customer")) {
+      scheduleCustomerRedirect()
+    } else {
+      // Admin 401 — use the same debounced pattern to avoid stacking redirects.
+      localStorage.removeItem("user_menus")
+      localStorage.removeItem("user_name")
+      localStorage.removeItem("user_email")
+      window.location.href = "/login"
+    }
     throw new Error("Unauthenticated")
   }
 

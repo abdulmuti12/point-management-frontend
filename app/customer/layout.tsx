@@ -23,7 +23,10 @@ export default function CustomerLayout({
   const [mounted, setMounted] = useState(false)
   useEffect(() => { setMounted(true) }, [])
 
-  // After hydration, check auth on dashboard routes.
+  // After hydration, check auth on dashboard routes. If checkAuth returns
+  // authenticated=false the JWT on the server side has expired — but the
+  // HttpOnly cookie may still be set, which is why we also clear local
+  // session hints before navigating.
   useEffect(() => {
     if (!mounted) return
     const isDashboard = pathname === "/customer" || DASHBOARD_PREFIXES.some((x) => pathname.startsWith(x))
@@ -32,6 +35,11 @@ export default function CustomerLayout({
     checkAuth().then((result) => {
       if (!active) return
       if (!result.authenticated) {
+        // Clear local hints so the dashboard layout's auth-check (in
+        // customer-dashboard-layout.tsx) doesn't fire a second redirect.
+        localStorage.removeItem("customer_name")
+        localStorage.removeItem("customer_email")
+        localStorage.removeItem("customer_token")
         const token = localStorage.getItem("customer_token")
         const neededPasswordSet = token?.includes('"set_password"') || false
         router.replace(neededPasswordSet ? "/customer/set-password" : "/customer/login")

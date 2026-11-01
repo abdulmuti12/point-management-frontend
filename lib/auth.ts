@@ -15,6 +15,35 @@
 
 /* ── Fetch helpers ────────────────────────────────────────────── */
 
+// Debounce 401 redirect so multiple parallel customerFetch calls that
+// all time out simultaneously don't stack redirect calls — only one
+// page-level redirect fires, even if 5 fetches fail in the same tick.
+let customerRedirectScheduled = false
+
+export function scheduleCustomerRedirect() {
+  if (customerRedirectScheduled || typeof window === "undefined") return
+  customerRedirectScheduled = true
+
+  // Clear local session hints immediately so checkAuth in layout doesn't
+  // fight us on the next render.
+  localStorage.removeItem("customer_name")
+  localStorage.removeItem("customer_email")
+  localStorage.removeItem("customer_token")
+
+  // Call the logout endpoint to clear the HttpOnly cookie on the server side,
+  // then hard-navigate to login after a short delay so in-flight fetches
+  // can settle before the page unmounts.
+  fetch("/api/bff/customer/logout", {
+    method: "POST",
+    credentials: "same-origin",
+  }).catch(() => {
+    /* ignore — navigate regardless */
+  }).finally(() => {
+    customerRedirectScheduled = false
+    window.location.href = "/customer/login"
+  })
+}
+
 /**
  * Make an authenticated admin API call through the BFF.
  * The cookie is sent automatically by the browser (same-origin).
@@ -39,11 +68,15 @@ export async function adminFetch(endpoint: string, options: RequestInit = {}) {
   const data = await res.json().catch(() => ({}));
 
   if (res.status === 401) {
-    // Session expired — redirect to login
+    // Session expired — redirect to login. Clear the local session hints
+    // before navigating so the layout auth-check doesn't bounce back.
     if (typeof window !== "undefined") {
-      window.location.href = "/login";
+      localStorage.removeItem("user_menus")
+      localStorage.removeItem("user_name")
+      localStorage.removeItem("user_email")
+      window.location.href = "/login"
     }
-    throw new Error("Unauthenticated");
+    throw new Error("Unauthenticated")
   }
 
   return { ok: res.ok, status: res.status, data };
@@ -72,10 +105,8 @@ export async function customerFetch(endpoint: string, options: RequestInit = {})
   const data = await res.json().catch(() => ({}));
 
   if (res.status === 401) {
-    if (typeof window !== "undefined") {
-      window.location.href = "/customer/login";
-    }
-    throw new Error("Unauthenticated");
+    scheduleCustomerRedirect()
+    throw new Error("Unauthenticated")
   }
 
   return { ok: res.ok, status: res.status, data };
@@ -83,13 +114,22 @@ export async function customerFetch(endpoint: string, options: RequestInit = {})
 
 /**
  * Check if the user has a valid session (cookie present on the server side).
+ * Returns a sentinel unauthenticated result on 401/5xx so callers can
+ * reliably detect "no valid session" without parsing a possibly-empty body.
  */
 export async function checkAuth(): Promise<{
   authenticated: boolean;
   role: "admin" | "customer" | null;
 }> {
-  const res = await fetch("/api/bff/me", { credentials: "same-origin" });
-  return res.json();
+  try {
+    const res = await fetch("/api/bff/me", { credentials: "same-origin" });
+    if (res.status === 401 || res.status >= 500) {
+      return { authenticated: false, role: null };
+    }
+    return await res.json();
+  } catch {
+    return { authenticated: false, role: null };
+  }
 }
 
 /* ── Logout helpers ───────────────────────────────────────────── */

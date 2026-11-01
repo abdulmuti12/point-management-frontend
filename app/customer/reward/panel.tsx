@@ -676,7 +676,7 @@ export function RewardHeroCard({
           className={[
             "w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold uppercase tracking-wider transition-colors border",
             claimable
-              ? "bg-white/10 backdrop-blur-sm border-white/40 text-white hover:bg-white/20 disabled:opacity-60"
+              ? "bg-white border-white text-slate-900 hover:bg-[#E5A35E] hover:border-[#E5A35E] hover:text-white disabled:opacity-60"
               : "bg-transparent border-slate-500/50 text-slate-400 cursor-not-allowed",
           ].join(" ")}
         >
@@ -776,7 +776,7 @@ function RewardCard({
           className={[
             "mt-4 w-full inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors border",
             claimable
-              ? "bg-amber-500 hover:bg-amber-400 border-amber-500 text-white disabled:opacity-60"
+              ? "bg-white border-slate-300 text-slate-900 hover:bg-[#E5A35E] hover:border-[#E5A35E] hover:text-white disabled:opacity-60"
               : "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed",
           ].join(" ")}
         >
@@ -1037,7 +1037,7 @@ function GiftDetailModal({
                     type="button"
                     disabled={isClaiming}
                     onClick={onClaim}
-                    className="group w-full py-3.5 rounded-xl text-sm font-medium bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-60 text-white transition-all shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2"
+                    className="group w-full py-3.5 rounded-xl text-sm font-medium bg-white border border-slate-300 text-slate-900 hover:bg-[#E5A35E] hover:border-[#E5A35E] hover:text-white disabled:opacity-60 transition-all shadow-lg shadow-amber-500/10 flex items-center justify-center gap-2"
                   >
                     {isClaiming ? (
                       <span className="inline-flex items-center justify-center gap-2">
