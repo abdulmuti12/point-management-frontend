@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { User, Mail, Phone, ShieldCheck, Shield, Crown, Info } from "lucide-react"
+import { User, Mail, Phone, ShieldCheck, Shield, Crown, Info, Coins, Gift, Clock } from "lucide-react"
 import { customerFetch } from "@/lib/auth"
 
 const STORAGE_BASE_URL = "/api/bff/storage/"
@@ -40,6 +40,16 @@ type MemberLevelData = {
     min_points: number | null
     max_points: number | null
   } | null
+  next_level: {
+    id: number
+    name: string
+  } | null
+  progress: {
+    current: number
+    min: number
+    target: number
+    percent: number
+  } | null
   points_expiry_date: string | null
 }
 
@@ -56,10 +66,20 @@ export default function CustomerAccountPage() {
   })
   const [loading, setLoading] = useState(true)
   const [level, setLevel] = useState<MemberLevelData | null>(null)
+  const [activePoints, setActivePoints] = useState(0)
+  const [pendingClaims, setPendingClaims] = useState(0)
 
   useEffect(() => {
     customerFetch("member-level").then(({ ok, data }) => {
       if (ok) setLevel((data.data || data) as MemberLevelData)
+    }).catch(() => {})
+
+    customerFetch("gifts").then(({ ok, data }) => {
+      if (ok) {
+        const gd = data.data || data
+        setActivePoints(gd.total_points ?? 0)
+        setPendingClaims((gd.gifts || []).filter((g: any) => g.pending_claim).length)
+      }
     }).catch(() => {})
   }, [])
 
@@ -119,11 +139,11 @@ export default function CustomerAccountPage() {
   const expiryDate = level?.points_expiry_date || null
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl">
+    <div className="p-6 space-y-6 max-w-6xl">
       {/* ── Member Level Image ─────────────────────────────────────────────── */}
       {activeLevel && (
         <div className="space-y-4">
-          <div className="relative max-w-[80%] rounded-xl overflow-hidden bg-slate-100">
+          <div className="relative max-w-[50%] rounded-xl overflow-hidden bg-slate-100">
             <div className="w-full aspect-[16/9] flex items-center justify-center">
               {activeLevel.image_url ? (
                 <img
@@ -171,6 +191,58 @@ export default function CustomerAccountPage() {
             <div className="flex-1">
               <p className="text-[11px] uppercase tracking-wide text-slate-500 font-medium">Points Expiry</p>
               <p className="text-xl font-bold text-slate-900 mt-0.5">{formatExpiry(expiryDate)}</p>
+            </div>
+          </div>
+
+          {/* Progress bar to next level */}
+          {level?.progress && level.next_level && (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-600">
+                  Progress to{" "}
+                  <span className="font-medium text-amber-600">{level.next_level.name}</span>
+                </span>
+                <span className="text-xs font-medium text-amber-600">{level.progress.percent}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-amber-500 rounded-full"
+                  style={{ width: `${level.progress.percent}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">
+                {level.progress.current.toLocaleString("id-ID")} /{" "}
+                {level.progress.target.toLocaleString("id-ID")} pts
+              </p>
+            </div>
+          )}
+
+          {/* Summary cards */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
+              <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/15 mb-2">
+                <Coins className="w-4 h-4 text-amber-600" />
+              </div>
+              <p className="text-lg font-semibold text-amber-600">
+                {activePoints.toLocaleString("id-ID")}
+              </p>
+              <p className="text-[10px] text-slate-500 mt-0.5">Active Points</p>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
+              <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/15 mb-2">
+                <Gift className="w-4 h-4 text-emerald-600" />
+              </div>
+              <p className="text-lg font-semibold text-emerald-600">
+                {(level?.total_points ?? 0).toLocaleString("id-ID")}
+              </p>
+              <p className="text-[10px] text-slate-500 mt-0.5">Total Earned</p>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-xl p-4 text-center">
+              <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-200 mb-2">
+                <Clock className="w-4 h-4 text-slate-500" />
+              </div>
+              <p className="text-lg font-semibold text-slate-600">{pendingClaims}</p>
+              <p className="text-[10px] text-slate-500 mt-0.5">Pending Claims</p>
             </div>
           </div>
         </div>
