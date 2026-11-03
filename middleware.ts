@@ -16,6 +16,7 @@ const CUSTOMER_PUBLIC: string[] = [
   "/customer/register",
   "/customer/set-password",
   "/customer/forgot-password",
+  "/customer/reset-password",
 ];
 
 function hasCookie(request: NextRequest, name: string): boolean {
