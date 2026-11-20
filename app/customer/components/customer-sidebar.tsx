@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react"
 import { logoutCustomer } from "@/lib/auth"
+import TLALogo from "./tla-logo"
 
 const NAV_ITEMS = [
   { label: "Home", icon: Home, href: "/customer" },
@@ -47,13 +48,8 @@ export function CustomerSidebar({
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between p-5 mt-8">
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-[22px] leading-none font-serif font-light tracking-[0.02em] text-[#9A6C27] whitespace-nowrap">
-            THE LUXURY ASIA
-          </span>
-          <span className="text-[14px] leading-none font-serif font-light tracking-[0.5em] text-[#9A6C27]">
-            LIVING
-          </span>
+        <div className="flex flex-col items-center">
+          <TLALogo className="w-[200px] h-[27px] text-[#9A6C27]" />
         </div>
         <button
           onClick={onMobileClose}

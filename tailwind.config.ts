@@ -11,7 +11,8 @@ const config: Config = {
   theme: {
   	extend: {
   		fontFamily: {
-  			sans: ['Arial', 'Helvetica', 'sans-serif'],
+  			sans: ['var(--font-plus-jakarta-sans)', 'Arial', 'Helvetica', 'sans-serif'],
+  			serif: ['var(--font-cormorant-garamond)', 'Georgia', 'serif'],
   		},
   		colors: {
   			background: 'hsl(var(--background))',

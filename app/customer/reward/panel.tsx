@@ -580,7 +580,7 @@ function useGiftState(gift: Gift, activePoints: number) {
     ? pendingStatus === "waiting"
       ? "Awaiting Approval"
       : "Approved"
-    : `Need ${remaining.toLocaleString("id-ID")} more pts`
+    : `${remaining.toLocaleString("id-ID")} more pts`
   return { remaining, pendingStatus, isLockedByPending, redeemLabel }
 }
 
@@ -1058,7 +1058,7 @@ function GiftDetailModal({
                   </div>
                 ) : (
                   <div className="w-full py-3.5 rounded-xl text-sm font-medium bg-slate-100 border border-slate-200 text-slate-400 text-center">
-                    Need {remaining.toLocaleString("id-ID")} more pts to redeem
+                    {remaining.toLocaleString("id-ID")} more pts to redeem
                   </div>
                 )}
               </div>
