@@ -68,7 +68,7 @@ export function CustomerSidebar({
               key={href}
               onClick={() => handleNavClick(href)}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                         text-[14px] font-medium transition-colors
+                         font-sans text-[14px] uppercase tracking-[0.08em] transition-colors
                          ${
                            active
                              ? "bg-white/[0.2] text-white"

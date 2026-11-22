@@ -447,7 +447,7 @@ export default function CustomerRegisterPage() {
                 disabled={manualLoading}
                 className="w-full h-12 rounded-xl bg-gradient-to-r from-[#B5764A] via-[#C68A52] to-[#A85F38]
                            hover:from-[#C2824F] hover:via-[#D2965C] hover:to-[#B56A40]
-                           text-white font-medium text-[15px] font-serif tracking-wide
+                           text-white font-medium text-[15px] tracking-wide
                            shadow-lg shadow-black/30
                            shadow-sm shadow-blue-600/20
                            active:scale-[0.99] transition-colors

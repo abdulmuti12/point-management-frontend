@@ -120,8 +120,8 @@ export default function CustomerOrdersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-slate-900">My Orders</h1>
-        <p className="text-slate-500 text-sm mt-1">Your order history.</p>
+        <h1 className="font-sans text-[14px] uppercase tracking-[0.08em] font-medium text-slate-900">My Orders</h1>
+        <p className="font-sans text-[12px] uppercase tracking-[0.08em] text-slate-500 mt-1">Your order history.</p>
       </div>
 
       {isLoading ? (

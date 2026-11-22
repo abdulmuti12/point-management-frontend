@@ -308,8 +308,8 @@ export function CustomerRewardPanel({ showHeader = true }: { showHeader?: boolea
     <div className="space-y-6">
       {showHeader && (
         <div>
-          <h1 className="text-xl font-bold text-slate-900 mb-1">Reward</h1>
-          <p className="text-slate-500 text-sm">Points earned from each of your transactions.</p>
+          <h1 className="font-sans text-[14px] uppercase tracking-[0.08em] font-medium text-slate-900 mb-1">Reward</h1>
+          <p className="font-sans text-[12px] uppercase tracking-[0.08em] text-slate-500">Points earned from each of your transactions.</p>
         </div>
       )}
 
@@ -317,10 +317,10 @@ export function CustomerRewardPanel({ showHeader = true }: { showHeader?: boolea
       <div>
         <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
           <div>
-            <h2 className="font-[Georgia,serif] text-2xl font-bold text-slate-900 tracking-wide">
+            <h2 className="font-sans text-[14px] uppercase tracking-[0.08em] font-medium text-slate-900">
               Featured Rewards
             </h2>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="font-sans text-[12px] uppercase tracking-[0.08em] text-slate-500 mt-1">
               Extraordinary experiences. Exceptional living.
             </p>
           </div>
@@ -328,7 +328,7 @@ export function CustomerRewardPanel({ showHeader = true }: { showHeader?: boolea
             type="button"
             onClick={() => setExploreAll((v) => !v)}
             className={[
-              "inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider transition-colors",
+              "inline-flex items-center gap-1.5 font-sans text-[12px] uppercase tracking-[0.08em] font-medium transition-colors",
               exploreAll ? "text-amber-600" : "text-slate-900 hover:text-amber-600",
             ].join(" ")}
           >
@@ -550,8 +550,8 @@ function MemberLevelCard({
           <p className="text-[11px] text-slate-600">
             {level.min_point.toLocaleString("id-ID")}
             {level.max_point > 0
-              ? ` – ${level.max_point.toLocaleString("id-ID")} pts`
-              : "+ pts"}
+              ? ` – ${level.max_point.toLocaleString("id-ID")} points`
+              : "+ points"}
           </p>
           {level.description && (
             <p className="text-[10px] text-slate-500 mt-2 line-clamp-2">
@@ -575,12 +575,12 @@ function useGiftState(gift: Gift, activePoints: number) {
   const pendingStatus = gift.pending_claim?.status ?? null
   const isLockedByPending = !!gift.pending_claim
   const redeemLabel = gift.claimable
-    ? "Redeem Reward"
+    ? "Request Reward"
     : isLockedByPending
     ? pendingStatus === "waiting"
       ? "Awaiting Approval"
       : "Approved"
-    : `${remaining.toLocaleString("id-ID")} more pts`
+    : `${remaining.toLocaleString("id-ID")} more points`
   return { remaining, pendingStatus, isLockedByPending, redeemLabel }
 }
 
@@ -655,7 +655,7 @@ export function RewardHeroCard({
 
       {/* Content */}
       <div className="absolute inset-x-0 bottom-0 p-5 md:p-6 z-10">
-        <p className="font-[Georgia,serif] text-2xl md:text-3xl font-semibold text-white mb-1 leading-tight">
+        <p className="text-2xl md:text-3xl font-semibold text-white mb-1 leading-tight">
           {gift.name}
         </p>
         <div className="flex items-center gap-1.5 text-amber-300 mb-4">
@@ -663,7 +663,7 @@ export function RewardHeroCard({
           <span className="text-lg font-semibold">
             {gift.total_point.toLocaleString("id-ID")}
           </span>
-          <span className="text-sm text-slate-300">pts</span>
+          <span className="text-sm text-slate-300">points</span>
         </div>
 
         <button
@@ -755,7 +755,7 @@ function RewardCard({
           {category}
         </p>
         <h3
-          className="font-[Georgia,serif] text-base font-semibold text-slate-900 leading-snug cursor-pointer hover:text-amber-600 line-clamp-2"
+          className="text-base font-semibold text-slate-900 leading-snug cursor-pointer hover:text-amber-600 line-clamp-2"
           onClick={onOpen}
         >
           {gift.name}
@@ -766,7 +766,7 @@ function RewardCard({
           <span className="text-sm font-semibold">
             {gift.total_point.toLocaleString("id-ID")}
           </span>
-          <span className="text-xs text-slate-400">pts</span>
+          <span className="text-xs text-slate-400">points</span>
         </div>
 
         <button
@@ -831,7 +831,7 @@ function MyClaimCard({ claim }: { claim: GiftClaim }) {
           </span>
         </div>
         <p className="text-xs text-slate-500">
-          {claim.required_point.toLocaleString("id-ID")} pts · {formatDate(claim.created_at)}
+          {claim.required_point.toLocaleString("id-ID")} points · {formatDate(claim.created_at)}
         </p>
         {claim.notes && <p className="text-[11px] text-slate-500 mt-1 italic">Note: {claim.notes}</p>}
         {claim.status === "rejected" && claim.admin_note && (
@@ -1001,7 +1001,7 @@ function GiftDetailModal({
                 <span className="text-2xl font-semibold text-amber-600">
                   {gift.total_point.toLocaleString("id-ID")}
                 </span>
-                <span className="text-sm text-slate-400">pts</span>
+                <span className="text-sm text-slate-400">points</span>
               </div>
 
               {summary && (
@@ -1028,7 +1028,7 @@ function GiftDetailModal({
                 <div className="flex items-center justify-between mb-3 text-xs text-slate-500">
                   <span>Your active points</span>
                   <span className="font-medium text-slate-800">
-                    {activePoints.toLocaleString("id-ID")} pts
+                    {activePoints.toLocaleString("id-ID")} points
                   </span>
                 </div>
 
@@ -1046,7 +1046,7 @@ function GiftDetailModal({
                       </span>
                     ) : (
                       <>
-                        Redeem Reward
+                        Request Reward
                         <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                       </>
                     )}
@@ -1058,7 +1058,7 @@ function GiftDetailModal({
                   </div>
                 ) : (
                   <div className="w-full py-3.5 rounded-xl text-sm font-medium bg-slate-100 border border-slate-200 text-slate-400 text-center">
-                    {remaining.toLocaleString("id-ID")} more pts to redeem
+                    {remaining.toLocaleString("id-ID")} more points to request
                   </div>
                 )}
               </div>
@@ -1158,8 +1158,8 @@ function MemberLevelModal({
             <p className="text-sm text-slate-700">
               {level.min_point.toLocaleString("id-ID")}
               {level.max_point > 0
-                ? ` – ${level.max_point.toLocaleString("id-ID")} pts`
-                : "+ pts"}
+                ? ` – ${level.max_point.toLocaleString("id-ID")} points`
+                : "+ points"}
             </p>
             {level.description && (
               <p className="text-sm text-slate-600 mt-3">{level.description}</p>

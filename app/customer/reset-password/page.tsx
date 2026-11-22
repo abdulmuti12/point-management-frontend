@@ -87,8 +87,8 @@ export default function ResetPasswordPage() {
         >
           <ArrowLeft className="h-4 w-4" /> Kembali ke Login
         </button>
-        <h1 className="text-xl font-bold text-white mb-1">Reset Password</h1>
-        <p className="text-sm text-slate-500 mb-6">
+        <h1 className="font-sans text-[14px] uppercase tracking-[0.08em] font-medium text-white mb-1">Reset Password</h1>
+        <p className="font-sans text-[12px] uppercase tracking-[0.08em] text-slate-500 mb-6">
           Buat password baru untuk akun <span className="text-slate-300">{email}</span>.
         </p>
 

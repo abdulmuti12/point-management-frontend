@@ -98,10 +98,10 @@ export function CustomerHome() {
     <div className="space-y-6">
       {/* Welcome header */}
       <div>
-        <h1 className="text-xl font-bold text-slate-900 mb-1">
+        <h1 className="font-sans text-[14px] uppercase tracking-[0.08em] font-medium text-slate-900 mb-1">
           {user?.full_name || user?.name || "Customer"}
         </h1>
-        <p className="text-slate-500 text-sm">Welcome back. Here&apos;s your loyalty overview.</p>
+        <p className="font-sans text-[12px] uppercase tracking-[0.08em] text-slate-500">Welcome back. Here&apos;s your loyalty overview.</p>
       </div>
 
       {/* Welcome / summary cards */}
@@ -193,11 +193,11 @@ export function CustomerHome() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <h2 className="text-base font-semibold text-slate-900">Featured Rewards</h2>
+              <h2 className="font-sans text-[14px] uppercase tracking-[0.08em] font-medium text-slate-900">Featured Rewards</h2>
             </div>
             <Link
               href="/customer/reward"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-amber-600 hover:text-amber-500 transition-colors"
+              className="inline-flex items-center gap-1.5 font-sans text-[12px] uppercase tracking-[0.08em] font-medium text-amber-600 hover:text-amber-500 transition-colors"
             >
               View All
               <ArrowRight className="w-3.5 h-3.5" />
@@ -224,11 +224,11 @@ export function CustomerHome() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 text-slate-400" />
-              <h2 className="text-base font-semibold text-slate-900">Recent Claims</h2>
+              <h2 className="font-sans text-[14px] uppercase tracking-[0.08em] font-medium text-slate-900">Recent Claims</h2>
             </div>
             <Link
               href="/customer/reward"
-              className="text-xs text-slate-500 hover:text-amber-600 transition-colors"
+              className="font-sans text-[12px] uppercase tracking-[0.08em] font-medium text-slate-500 hover:text-amber-600 transition-colors"
             >
               View all
             </Link>

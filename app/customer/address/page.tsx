@@ -191,8 +191,8 @@ export default function CustomerAddressPage() {
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">My Addresses</h1>
-          <p className="text-slate-500 text-sm mt-1">Manage your shipping addresses.</p>
+          <h1 className="font-sans text-[14px] uppercase tracking-[0.08em] font-medium text-slate-900">My Addresses</h1>
+          <p className="font-sans text-[12px] uppercase tracking-[0.08em] text-slate-500 mt-1">Manage your shipping addresses.</p>
         </div>
         <button
           onClick={() => { setShowForm(!showForm); setEditingId(null); setForm({ address: "", note: "" }) }}

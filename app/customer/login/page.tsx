@@ -524,7 +524,7 @@ export default function CustomerLoginPage() {
                 disabled={manualLoading}
                 className="w-full h-12 bg-gradient-to-r from-[#B5764A] via-[#C68A52] to-[#A85F38]
                            hover:from-[#C2824F] hover:via-[#D2965C] hover:to-[#B56A40]
-                           text-white font-medium text-[15px] font-serif tracking-wide
+                           text-white font-medium text-[15px] tracking-wide
                            rounded-xl shadow-lg shadow-black/30
                            active:scale-[0.98] transition-all
                            disabled:opacity-70 disabled:cursor-not-allowed"
